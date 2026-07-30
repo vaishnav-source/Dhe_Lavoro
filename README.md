@@ -41,8 +41,14 @@ Tests run entirely offline against fixtures/mocks — no live network calls, so 
 
 ## Not yet done (flag before production)
 - Re-verify Infopark's actual table markup against live `view-source` (parser was built from a markdown-rendered fetch, not raw HTML — column order assumed stable, should be double-checked once you can inspect raw HTML/class names directly).
-- Scheduler entrypoint (cron/APScheduler) — DB writer exists now, needs wiring into a periodic runner.
 - Cyberpark scraper (Phase 2, per PRD — apply-method detection needed).
+- Backend API / frontend (not started).
+
+## Scheduler (`scraper/scheduler.py`)
+- `run_once()` — runs every configured source (currently Infopark, Technopark) sequentially: scrape → `upsert_jobs()` → `mark_stale_jobs_expired()`. Add Cyberpark later by appending one entry to `SOURCES` — the run loop doesn't change.
+- Per-source failure isolation — if one source's scraper or DB call throws, it's caught and logged; other sources still run. Exit code is non-zero only if *every* source failed, so cron/monitoring can alert on total failure without false-alarming on a single flaky source.
+- Two invocation modes: `python -m scraper.scheduler` (single run — pair with cron) or `python -m scraper.scheduler --forever` (in-process loop with a sleep interval, if you'd rather run one long-lived process than rely on system cron).
+- Example crontab line is in the file's module docstring.
 
 ## Database writer (`scraper/common/db_writer.py`)
 - `upsert_jobs()` — writes normalized job dicts into Supabase `jobs` table, batched (default 200/batch), keyed on `fingerprint` (unique constraint) so re-scrapes update instead of duplicate.
