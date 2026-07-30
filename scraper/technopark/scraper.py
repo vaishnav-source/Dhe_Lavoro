@@ -37,7 +37,15 @@ def _init_session() -> requests.Session:
         raise SessionInitError("XSRF-TOKEN cookie not found after landing page load")
 
     # Laravel sends this cookie URL-encoded; the header needs the decoded value.
-    session.headers.update({"X-XSRF-TOKEN": unquote(xsrf_cookie)})
+    # Also mirror the other headers a real browser sends for this AJAX call —
+    # without these the route appears to 404 (likely an anti-bot check that
+    # silently 404s non-XHR-looking requests instead of returning 403).
+    session.headers.update({
+        "X-XSRF-TOKEN": unquote(xsrf_cookie),
+        "X-Requested-With": "XMLHttpRequest",
+        "Accept": "application/json, text/plain, */*",
+        "Referer": TECHNOPARK_LANDING_URL,
+    })
     return session
 
 
