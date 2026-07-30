@@ -82,21 +82,49 @@ def mark_stale_jobs_expired(source: str, seen_fingerprints: List[str], client: C
     """After a full scrape run for a source, mark any job still 'active' in
     the DB for that source but NOT present in this run's results as
     'expired' — covers listings the park removed before their stated
-    deadline (see PRD data-lifecycle note)."""
+    deadline (see PRD data-lifecycle note).
+
+    Implementation note: this deliberately does NOT send a giant `NOT IN
+    (...)` filter with hundreds of fingerprints in one request — PostgREST
+    rejects overly long query strings built that way (seen in practice:
+    a 480-item NOT IN caused a 400 "JSON could not be generated" error).
+    Instead it fetches the currently-active rows for this source, computes
+    the stale set in Python, and only sends the (usually much smaller)
+    list of ids that actually need updating — chunked as an extra safety
+    margin in case that list is itself large.
+    """
     db = client or get_client()
 
     if not seen_fingerprints:
         log.warning("No fingerprints passed for %s — refusing to mark-all-expired as a safety guard", source)
         return 0
 
-    result = (
+    seen_set = set(seen_fingerprints)
+
+    active_rows = (
         db.table("jobs")
-        .update({"status": "expired"})
+        .select("id, fingerprint")
         .eq("source", source)
         .eq("status", "active")
-        .not_.in_("fingerprint", seen_fingerprints)
         .execute()
-    )
-    count = len(result.data) if getattr(result, "data", None) else 0
-    log.info("Marked %s stale %s jobs as expired", count, source)
-    return count
+    ).data or []
+
+    stale_ids = [row["id"] for row in active_rows if row["fingerprint"] not in seen_set]
+
+    if not stale_ids:
+        log.info("No stale %s jobs to expire", source)
+        return 0
+
+    updated = 0
+    for batch in _chunk([{"id": i} for i in stale_ids], BATCH_SIZE):
+        batch_ids = [row["id"] for row in batch]
+        result = (
+            db.table("jobs")
+            .update({"status": "expired"})
+            .in_("id", batch_ids)
+            .execute()
+        )
+        updated += len(result.data) if getattr(result, "data", None) else len(batch_ids)
+
+    log.info("Marked %s stale %s jobs as expired", updated, source)
+    return updated
