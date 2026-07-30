@@ -5,7 +5,7 @@
 | Level | Concept | Where |
 |---|---|---|
 | 1 | Static HTML scraping (requests + BeautifulSoup) | `scraper/infopark/parser.py`, `scraper.py` |
-| 2 | Session handling (foundation laid, Technopark impl next) | `scraper/common/http_client.py` (`safe_get`/`safe_post` accept a shared `requests.Session`) |
+| 3 | Headless browser scraping (Playwright) | `scraper/technopark/scraper.py` — switched from requests+session to Playwright after the site's `paginated-jobs` endpoint 404'd plain HTTP calls even with matching headers/cookies (likely TLS/JS-fingerprint anti-bot check) |
 | 4 | Retry w/ exponential backoff | `tenacity` decorators in `http_client.py` |
 | 4 | Rate limiting / politeness | `scraper/common/rate_limiter.py` |
 | 4 | Structured logging (no secrets logged) | `scraper/common/logger.py` |
@@ -30,8 +30,11 @@ Technopark (Level 2/3: session+XSRF or Playwright) and Cyberpark (Phase 2) are n
 Run:
 ```
 pip install -r requirements.txt
+playwright install chromium
 pytest -v
 ```
+
+Note: `playwright install chromium` downloads the actual browser binary — required once before running `scraper/technopark/scraper.py` for real (not needed just to run the test suite, since Technopark's Playwright-driving code isn't unit-tested against a live browser — only its pure URL-parsing helper is).
 
 - `test_infopark_parser.py` — parser correctness against a static fixture (`tests/fixtures/infopark_sample.html`), including a malformed-row case, so a future site redesign that breaks parsing fails a test instead of silently returning bad data.
 - `test_dedup.py` — fingerprint stability/uniqueness.
