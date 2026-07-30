@@ -41,6 +41,11 @@ Tests run entirely offline against fixtures/mocks — no live network calls, so 
 
 ## Not yet done (flag before production)
 - Re-verify Infopark's actual table markup against live `view-source` (parser was built from a markdown-rendered fetch, not raw HTML — column order assumed stable, should be double-checked once you can inspect raw HTML/class names directly).
-- Technopark scraper (session + XSRF token handling, per PRD).
-- DB writer (`common/db_writer.py`) — Supabase upsert logic, not yet built.
-- Scheduler entrypoint (cron/APScheduler).
+- Scheduler entrypoint (cron/APScheduler) — DB writer exists now, needs wiring into a periodic runner.
+- Cyberpark scraper (Phase 2, per PRD — apply-method detection needed).
+
+## Database writer (`scraper/common/db_writer.py`)
+- `upsert_jobs()` — writes normalized job dicts into Supabase `jobs` table, batched (default 200/batch), keyed on `fingerprint` (unique constraint) so re-scrapes update instead of duplicate.
+- `mark_stale_jobs_expired()` — after a full scrape run, flips any job still `active` for that source but missing from the run's results to `expired` (handles listings pulled before their stated deadline). Refuses to run if given an empty fingerprint list (safety guard against wiping a whole source's active status by accident).
+- Table schema (SQL) documented at the top of `db_writer.py` — run it in the Supabase SQL editor before first use.
+- Both functions accept an injected `client` — this is what makes them unit-testable (`tests/test_db_writer.py`) without hitting real Supabase.

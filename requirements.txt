@@ -4,3 +4,4 @@ tenacity>=8.2
 python-dotenv>=1.0
 pytest>=8.0
 playwright>=1.44
+supabase>=2.4
