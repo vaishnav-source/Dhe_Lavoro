@@ -25,6 +25,10 @@ def test_fields_extracted_correctly():
     assert first.company_name == "Way Dot Com (P) Ltd"
     assert first.source_job_id == "31800"
     assert first.closing_date == "2026-07-30"
+    assert first.detail_url == (
+        "https://technopark.in/job-details/31800"
+        "?job=Senior%20QA%20Engineer%20%28Manual%20%2B%20Automation%29"
+    )
 
 
 def test_parses_data_wrapped_shape():

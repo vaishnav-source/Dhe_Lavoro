@@ -20,6 +20,7 @@ INFOPARK_MAX_PAGES = 24
 TECHNOPARK_LANDING_URL = "https://technopark.in/job-search?search=&type=Job"
 TECHNOPARK_PAGINATED_URL = "https://technopark.in/paginated-jobs"
 TECHNOPARK_MAX_PAGES = 50  # safety ceiling — real loop stops on empty page
+TECHNOPARK_DETAIL_URL_TEMPLATE = "https://technopark.in/job-details/{job_id}?job={title}"
 
 # --- Networking ---
 REQUEST_TIMEOUT_SECONDS = 10

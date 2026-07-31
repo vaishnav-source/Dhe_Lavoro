@@ -107,6 +107,7 @@ def scrape_all_pages(max_pages: int = TECHNOPARK_MAX_PAGES, headless: bool = Tru
             "company": job.company_name,
             "posted_date": job.posted_date,
             "closing_date": job.closing_date,
+            "detail_url": job.detail_url,
         }
         for job in all_jobs
     ]

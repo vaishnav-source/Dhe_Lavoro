@@ -1,5 +1,8 @@
 from dataclasses import dataclass
 from typing import List, Any
+from urllib.parse import quote
+
+from scraper.common.config import TECHNOPARK_DETAIL_URL_TEMPLATE
 
 
 @dataclass
@@ -11,6 +14,7 @@ class TechnoparkJob:
     closing_date: str
     company_id: str
     company_name: str
+    detail_url: str
 
 
 def _extract_job_list(payload: Any) -> list:
@@ -45,15 +49,21 @@ def parse_paginated_jobs(payload: Any) -> List[TechnoparkJob]:
         if job_id is None or not job_title or not company_name:
             continue
 
+        job_id_str = str(job_id)
+        detail_url = TECHNOPARK_DETAIL_URL_TEMPLATE.format(
+            job_id=job_id_str, title=quote(job_title)
+        )
+
         jobs.append(
             TechnoparkJob(
-                source_job_id=str(job_id),
+                source_job_id=job_id_str,
                 job_listing_id=str(item.get("job_listing_id", "")),
                 job_title=job_title,
                 posted_date=item.get("posted_date", ""),
                 closing_date=item.get("closing_date", ""),
                 company_id=str(item.get("company_id", "")),
                 company_name=company_name,
+                detail_url=detail_url,
             )
         )
 
