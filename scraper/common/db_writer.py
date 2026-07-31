@@ -14,6 +14,9 @@ Schema assumed (create this table in Supabase SQL editor first):
         posted_date text,
         closing_date text,
         detail_url text,
+        description text,                    -- filled in by detail-page backfill
+        contact_email text,                  -- filled in by detail-page backfill
+        short_description text,              -- AI-generated summary (Groq), filled in by backfill
         status text not null default 'active',   -- 'active' | 'expired'
         last_seen_at timestamptz not null default now(),
         created_at timestamptz not null default now()
@@ -21,8 +24,15 @@ Schema assumed (create this table in Supabase SQL editor first):
 
 Upsert is keyed on `fingerprint` (unique constraint) — re-scraping the same
 job updates last_seen_at/closing_date instead of creating a duplicate row.
+
+If you already created the `jobs` table before description/contact_email
+existed, run this migration instead of recreating the table:
+
+    alter table jobs add column if not exists description text;
+    alter table jobs add column if not exists contact_email text;
+    alter table jobs add column if not exists short_description text;
 """
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 from supabase import Client
 
@@ -76,6 +86,49 @@ def upsert_jobs(jobs: List[Dict[str, Any]], client: Client | None = None) -> int
 
     log.info("Upserted %s/%s jobs", written, len(jobs))
     return written
+
+
+def get_jobs_missing_detail(source: str, limit: int = 500, client: Client | None = None) -> List[Dict[str, Any]]:
+    """Return active jobs for a source that don't have a contact_email yet
+    — these are the ones worth spending a detail-page fetch on. Capped
+    with a limit so one call can't accidentally try to pull an unbounded
+    number of rows into memory."""
+    db = client or get_client()
+    result = (
+        db.table("jobs")
+        .select("id, fingerprint, detail_url")
+        .eq("source", source)
+        .eq("status", "active")
+        .is_("contact_email", "null")
+        .limit(limit)
+        .execute()
+    )
+    return result.data or []
+
+
+def update_job_detail(
+    fingerprint: str,
+    description: Optional[str],
+    contact_email: Optional[str],
+    short_description: Optional[str] = None,
+    client: Client | None = None,
+) -> bool:
+    """Update one job row with detail-page results (and, if provided, an
+    AI-generated short summary). Returns True if a row was actually
+    updated (lets the caller distinguish 'nothing found on the page' from
+    'the fingerprint didn't match any row')."""
+    db = client or get_client()
+    values = {"description": description, "contact_email": contact_email}
+    if short_description is not None:
+        values["short_description"] = short_description
+
+    result = (
+        db.table("jobs")
+        .update(values)
+        .eq("fingerprint", fingerprint)
+        .execute()
+    )
+    return bool(result.data)
 
 
 def mark_stale_jobs_expired(source: str, seen_fingerprints: List[str], client: Client | None = None) -> int:

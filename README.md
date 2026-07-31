@@ -42,6 +42,12 @@ Note: `playwright install chromium` downloads the actual browser binary — requ
 
 Tests run entirely offline against fixtures/mocks — no live network calls, so CI doesn't depend on the target sites being up or on rate-limit budget.
 
+## AI summarization (`scraper/common/ai_summarizer.py`)
+- `summarize_job_description()` — calls Groq's chat completions API (OpenAI-compatible), 2-3 sentence summary (role, key skills, experience level). Requires `GROQ_API_KEY` in `.env`.
+- Retried 3x with backoff on network errors; returns `None` (not an exception) on any failure or missing description, so one bad summarization never blocks the batch.
+- Model configurable via `GROQ_MODEL` env var (defaults to `llama-3.1-8b-instant` — verify this is still current in Groq's docs, model names get retired/renamed).
+- Wired into `scraper/infopark/backfill_details.py`: runs right after detail-page fetch, result stored in `short_description` column.
+
 ## Not yet done (flag before production)
 - Re-verify Infopark's actual table markup against live `view-source` (parser was built from a markdown-rendered fetch, not raw HTML — column order assumed stable, should be double-checked once you can inspect raw HTML/class names directly).
 - Cyberpark scraper (Phase 2, per PRD — apply-method detection needed).

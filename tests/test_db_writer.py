@@ -39,11 +39,19 @@ class FakeQuery:
         self.recorder.setdefault("in_calls", []).append((col, values))
         return self
 
+    def is_(self, col, val):
+        self.recorder.setdefault("is_filters", []).append((col, val))
+        return self
+
+    def limit(self, n):
+        self.recorder["limit"] = n
+        return self
+
     def execute(self):
         if self._mode == "select":
             return FakeExecuteResult(data=self.recorder.get("active_rows", []))
         if self._mode == "update":
-            return FakeExecuteResult(data=[{"id": i} for i in (self._update_ids or [])])
+            return FakeExecuteResult(data=[{"id": i} for i in (self._update_ids or [])] or self.recorder.get("update_result", []))
         if self._mode == "upsert":
             return FakeExecuteResult(data=self.recorder["upserted_rows"][-1])
         return FakeExecuteResult(data=[])
@@ -128,3 +136,40 @@ def test_mark_stale_jobs_no_stale_rows_skips_update():
 
     assert count == 0
     assert "update_calls" not in client.recorder
+
+
+def test_get_jobs_missing_detail_returns_active_rows():
+    from scraper.common.db_writer import get_jobs_missing_detail
+
+    active_rows = [{"id": 1, "fingerprint": "fp1", "detail_url": "https://infopark.in/x"}]
+    client = FakeClient(active_rows=active_rows)
+
+    jobs = get_jobs_missing_detail("infopark", client=client)
+
+    assert jobs == active_rows
+    assert ("contact_email", "null") in client.recorder["is_filters"]
+
+
+def test_update_job_detail_returns_true_when_row_matched():
+    from scraper.common.db_writer import update_job_detail
+
+    client = FakeClient()
+    client.recorder["update_result"] = [{"id": 1}]
+
+    updated = update_job_detail("fp1", "some description", "hr@company.com", client=client)
+
+    assert updated is True
+    assert client.recorder["update_calls"] == [
+        {"description": "some description", "contact_email": "hr@company.com"}
+    ]
+
+
+def test_update_job_detail_returns_false_when_no_row_matched():
+    from scraper.common.db_writer import update_job_detail
+
+    client = FakeClient()
+    client.recorder["update_result"] = []
+
+    updated = update_job_detail("fp-missing", None, None, client=client)
+
+    assert updated is False

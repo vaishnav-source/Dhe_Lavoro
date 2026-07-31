@@ -40,5 +40,12 @@ RETRY_BACKOFF_SECONDS = 2  # exponential base
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")  # server-side key, never expose to frontend
 
+# --- AI summarization (Groq) ---
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")  # fast/cheap — verify current model name in Groq's docs, names change
+GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_TIMEOUT_SECONDS = 15
+GROQ_MAX_INPUT_CHARS = 4000  # cap description length sent to the model
+
 # --- Logging ---
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
