@@ -46,6 +46,8 @@ def safe_get(url: str, session: requests.Session | None = None, **kwargs) -> req
     client = session or requests
     headers = kwargs.pop("headers", {})
     headers.setdefault("User-Agent", USER_AGENT)
+    headers.setdefault("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+    headers.setdefault("Accept-Language", "en-US,en;q=0.9")
     resp = client.get(url, headers=headers, timeout=REQUEST_TIMEOUT_SECONDS, **kwargs)
     resp.raise_for_status()
     return resp

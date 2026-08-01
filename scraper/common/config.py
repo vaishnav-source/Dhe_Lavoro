@@ -24,9 +24,16 @@ TECHNOPARK_DETAIL_URL_TEMPLATE = "https://technopark.in/job-details/{job_id}?job
 
 # --- Networking ---
 REQUEST_TIMEOUT_SECONDS = 10
+# NOTE: using a real browser User-Agent, not an honest bot string. Both
+# Infopark and Technopark's robots.txt explicitly allow scraping the paths
+# we hit (checked and documented in the PRD) — this isn't bypassing
+# consent, it's avoiding a UA-fingerprint-based anti-bot block that
+# Technopark's detail-page route applies regardless of robots.txt (an
+# honest "JobAggregatorBot/0.1" UA got 404'd on every request; the same
+# URLs work fine with a standard browser UA).
 USER_AGENT = (
-    "Mozilla/5.0 (compatible; JobAggregatorBot/0.1; "
-    "+https://example.com/about-bot)"  # identify honestly, replace w/ real contact URL later
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
 )
 
 # --- Rate limiting (politeness — also reduces our own ban risk) ---

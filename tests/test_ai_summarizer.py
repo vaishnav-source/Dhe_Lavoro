@@ -6,88 +6,168 @@ import scraper.common.ai_summarizer as ai_summarizer
 from scraper.common.ai_summarizer import summarize_job_description
 
 
-def test_empty_description_returns_none_without_calling_api(monkeypatch):
-    called = []
-    monkeypatch.setattr(ai_summarizer, "_call_groq", lambda desc: called.append(desc))
+def reset_cursor(monkeypatch):
+    """Every test starts the sticky provider cursor at 0 — otherwise test
+    order could leak state between tests (a prior test advancing the
+    cursor would make a later test skip a provider it expects to hit)."""
+    monkeypatch.setattr(ai_summarizer, "_provider_start_index", 0)
+
+
+def test_empty_description_returns_none_without_calling_any_provider(monkeypatch):
+    reset_cursor(monkeypatch)
+    calls = []
+    monkeypatch.setattr(ai_summarizer, "PROVIDERS", [("groq", lambda d: calls.append(d))])
     assert summarize_job_description("") is None
     assert summarize_job_description(None) is None
     assert summarize_job_description("   ") is None
-    assert called == []
+    assert calls == []
 
 
-def test_successful_summary_returned(monkeypatch):
-    monkeypatch.setattr(ai_summarizer, "_call_groq", lambda desc: "A short summary.")
-    result = summarize_job_description("Some long job description text.")
-    assert result == "A short summary."
+def test_first_provider_success_short_circuits_rest(monkeypatch):
+    reset_cursor(monkeypatch)
+    calls = []
 
+    def groq_ok(desc):
+        calls.append("groq")
+        return "Groq summary"
 
-def test_missing_api_key_returns_none(monkeypatch):
-    monkeypatch.setattr(ai_summarizer, "GROQ_API_KEY", "")
+    def openrouter_should_not_be_called(desc):
+        calls.append("openrouter")
+        return "should not happen"
+
+    monkeypatch.setattr(ai_summarizer, "PROVIDERS", [
+        ("groq", groq_ok),
+        ("openrouter", openrouter_should_not_be_called),
+    ])
 
     result = summarize_job_description("Some description")
 
-    assert result is None
+    assert result == "Groq summary"
+    assert calls == ["groq"]
 
 
-def test_api_failure_after_retries_returns_none(monkeypatch):
-    monkeypatch.setattr(ai_summarizer, "GROQ_API_KEY", "fake-key")
+def test_falls_back_to_next_provider_on_rate_limit(monkeypatch):
+    reset_cursor(monkeypatch)
 
-    def broken_post(*args, **kwargs):
+    def groq_rate_limited(desc):
+        raise requests.HTTPError("429 Too Many Requests")
+
+    def openrouter_ok(desc):
+        return "OpenRouter summary"
+
+    monkeypatch.setattr(ai_summarizer, "PROVIDERS", [
+        ("groq", groq_rate_limited),
+        ("openrouter", openrouter_ok),
+    ])
+
+    result = summarize_job_description("Some description")
+
+    assert result == "OpenRouter summary"
+
+
+def test_missing_api_key_skips_to_next_provider(monkeypatch):
+    reset_cursor(monkeypatch)
+
+    def groq_no_key(desc):
+        raise RuntimeError("GROQ_API_KEY not set")
+
+    def hf_ok(desc):
+        return "HF summary"
+
+    monkeypatch.setattr(ai_summarizer, "PROVIDERS", [
+        ("groq", groq_no_key),
+        ("huggingface", hf_ok),
+    ])
+
+    result = summarize_job_description("Some description")
+
+    assert result == "HF summary"
+
+
+def test_all_providers_fail_returns_none(monkeypatch):
+    reset_cursor(monkeypatch)
+
+    def always_fails(desc):
         raise requests.RequestException("network down")
 
-    monkeypatch.setattr(requests, "post", broken_post)
+    monkeypatch.setattr(ai_summarizer, "PROVIDERS", [
+        ("groq", always_fails),
+        ("openrouter", always_fails),
+        ("huggingface", always_fails),
+    ])
 
     result = summarize_job_description("Some description")
 
     assert result is None
 
 
-def test_successful_api_call_parses_response(monkeypatch):
+def test_sticky_cursor_skips_exhausted_provider_on_later_calls(monkeypatch):
+    """Core behavior the person asked for: once Groq fails once (e.g. job
+    15 hits a rate limit), job 16 onwards should go straight to the next
+    provider — not retry Groq every single time."""
+    reset_cursor(monkeypatch)
+
+    groq_call_count = {"n": 0}
+
+    def groq_rate_limited(desc):
+        groq_call_count["n"] += 1
+        raise requests.HTTPError("429 Too Many Requests")
+
+    def openrouter_ok(desc):
+        return f"OpenRouter summary for: {desc}"
+
+    monkeypatch.setattr(ai_summarizer, "PROVIDERS", [
+        ("groq", groq_rate_limited),
+        ("openrouter", openrouter_ok),
+    ])
+
+    # job 15 — groq fails, falls back to openrouter, cursor advances
+    result_15 = summarize_job_description("job 15 description")
+    assert result_15 == "OpenRouter summary for: job 15 description"
+    assert groq_call_count["n"] == 1
+
+    # job 16 — should go straight to openrouter, groq not called again
+    result_16 = summarize_job_description("job 16 description")
+    assert result_16 == "OpenRouter summary for: job 16 description"
+    assert groq_call_count["n"] == 1  # unchanged — groq was skipped this time
+
+
+def test_call_groq_parses_response_shape(monkeypatch):
     monkeypatch.setattr(ai_summarizer, "GROQ_API_KEY", "fake-key")
 
     fake_resp = MagicMock()
     fake_resp.raise_for_status = lambda: None
-    fake_resp.json = lambda: {
-        "choices": [{"message": {"content": "  Concise role summary.  "}}]
-    }
+    fake_resp.json = lambda: {"choices": [{"message": {"content": "  A summary.  "}}]}
     monkeypatch.setattr(requests, "post", lambda *a, **k: fake_resp)
 
-    result = summarize_job_description("Full job description text here.")
+    result = ai_summarizer._call_groq("Some job description")
 
-    assert result == "Concise role summary."
-
-
-def test_rate_limit_retries_then_succeeds(monkeypatch):
-    monkeypatch.setattr(ai_summarizer, "GROQ_API_KEY", "fake-key")
-    monkeypatch.setattr(ai_summarizer.time, "sleep", lambda s: None)  # skip real waiting in tests
-
-    rate_limited_resp = MagicMock()
-    rate_limited_resp.status_code = 429
-    rate_limited_resp.headers = {"Retry-After": "2"}
-
-    success_resp = MagicMock()
-    success_resp.status_code = 200
-    success_resp.raise_for_status = lambda: None
-    success_resp.json = lambda: {"choices": [{"message": {"content": "Summary after retry."}}]}
-
-    responses = [rate_limited_resp, success_resp]
-    monkeypatch.setattr(requests, "post", lambda *a, **k: responses.pop(0))
-
-    result = summarize_job_description("Some description")
-
-    assert result == "Summary after retry."
+    assert result == "A summary."
 
 
-def test_rate_limit_exhausted_returns_none(monkeypatch):
-    monkeypatch.setattr(ai_summarizer, "GROQ_API_KEY", "fake-key")
-    monkeypatch.setattr(ai_summarizer.time, "sleep", lambda s: None)
+def test_call_huggingface_parses_list_response_shape(monkeypatch):
+    monkeypatch.setattr(ai_summarizer, "HF_API_KEY", "fake-key")
 
-    always_rate_limited = MagicMock()
-    always_rate_limited.status_code = 429
-    always_rate_limited.headers = {}  # no Retry-After -> falls back to default backoff
+    fake_resp = MagicMock()
+    fake_resp.raise_for_status = lambda: None
+    fake_resp.json = lambda: [{"generated_text": "  HF generated summary.  "}]
+    monkeypatch.setattr(requests, "post", lambda *a, **k: fake_resp)
 
-    monkeypatch.setattr(requests, "post", lambda *a, **k: always_rate_limited)
+    result = ai_summarizer._call_huggingface("Some job description")
 
-    result = summarize_job_description("Some description")
+    assert result == "HF generated summary."
 
-    assert result is None
+
+def test_call_huggingface_unexpected_shape_raises(monkeypatch):
+    monkeypatch.setattr(ai_summarizer, "HF_API_KEY", "fake-key")
+
+    fake_resp = MagicMock()
+    fake_resp.raise_for_status = lambda: None
+    fake_resp.json = lambda: {"error": "model loading"}
+    monkeypatch.setattr(requests, "post", lambda *a, **k: fake_resp)
+
+    try:
+        ai_summarizer._call_huggingface("Some job description")
+        assert False, "expected RuntimeError"
+    except RuntimeError:
+        pass
