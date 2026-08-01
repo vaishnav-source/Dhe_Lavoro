@@ -51,16 +51,30 @@ def _chunk(items: List[Dict[str, Any]], size: int):
 
 def upsert_jobs(jobs: List[Dict[str, Any]], client: Client | None = None) -> int:
     """Upsert normalized job dicts. Returns count of rows written.
-    Batches requests so one large scrape run doesn't send a single giant
-    payload (easier to retry a failed batch without resending everything)."""
+
+    Dedupes by fingerprint first — Postgres rejects an upsert batch that
+    would touch the same conflict-target row twice in one statement
+    ('ON CONFLICT DO UPDATE command cannot affect row a second time'),
+    which happens if a source's scrape captures the same job twice in one
+    run (e.g. Technopark's infinite-scroll re-showing a job across two
+    page snapshots if the underlying listing shifted mid-scrape). Last
+    occurrence in the input wins.
+
+    Also batches requests so one large scrape run doesn't send a single
+    giant payload (easier to retry a failed batch without resending
+    everything)."""
     if not jobs:
         log.info("No jobs to write — skipping")
         return 0
 
+    deduped = list({job["fingerprint"]: job for job in jobs}.values())
+    if len(deduped) < len(jobs):
+        log.warning("Deduped %s duplicate-fingerprint rows before upsert", len(jobs) - len(deduped))
+
     db = client or get_client()
     written = 0
 
-    for batch in _chunk(jobs, BATCH_SIZE):
+    for batch in _chunk(deduped, BATCH_SIZE):
         rows = [
             {
                 "fingerprint": job["fingerprint"],
@@ -84,7 +98,7 @@ def upsert_jobs(jobs: List[Dict[str, Any]], client: Client | None = None) -> int
             # continue with remaining batches rather than aborting the whole run
             continue
 
-    log.info("Upserted %s/%s jobs", written, len(jobs))
+    log.info("Upserted %s/%s jobs (%s duplicates removed)", written, len(deduped), len(jobs) - len(deduped))
     return written
 
 

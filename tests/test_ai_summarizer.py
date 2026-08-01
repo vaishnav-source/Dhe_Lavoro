@@ -55,3 +55,39 @@ def test_successful_api_call_parses_response(monkeypatch):
     result = summarize_job_description("Full job description text here.")
 
     assert result == "Concise role summary."
+
+
+def test_rate_limit_retries_then_succeeds(monkeypatch):
+    monkeypatch.setattr(ai_summarizer, "GROQ_API_KEY", "fake-key")
+    monkeypatch.setattr(ai_summarizer.time, "sleep", lambda s: None)  # skip real waiting in tests
+
+    rate_limited_resp = MagicMock()
+    rate_limited_resp.status_code = 429
+    rate_limited_resp.headers = {"Retry-After": "2"}
+
+    success_resp = MagicMock()
+    success_resp.status_code = 200
+    success_resp.raise_for_status = lambda: None
+    success_resp.json = lambda: {"choices": [{"message": {"content": "Summary after retry."}}]}
+
+    responses = [rate_limited_resp, success_resp]
+    monkeypatch.setattr(requests, "post", lambda *a, **k: responses.pop(0))
+
+    result = summarize_job_description("Some description")
+
+    assert result == "Summary after retry."
+
+
+def test_rate_limit_exhausted_returns_none(monkeypatch):
+    monkeypatch.setattr(ai_summarizer, "GROQ_API_KEY", "fake-key")
+    monkeypatch.setattr(ai_summarizer.time, "sleep", lambda s: None)
+
+    always_rate_limited = MagicMock()
+    always_rate_limited.status_code = 429
+    always_rate_limited.headers = {}  # no Retry-After -> falls back to default backoff
+
+    monkeypatch.setattr(requests, "post", lambda *a, **k: always_rate_limited)
+
+    result = summarize_job_description("Some description")
+
+    assert result is None

@@ -41,12 +41,21 @@ RETRY_BACKOFF_SECONDS = 2  # exponential base
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")  # server-side key, never expose to frontend
 
-# --- AI summarization (Groq) ---
+# --- AI summarization (multi-provider fallback: Groq -> OpenRouter -> Hugging Face) ---
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")  # fast/cheap — verify current model name in Groq's docs, names change
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_TIMEOUT_SECONDS = 15
-GROQ_MAX_INPUT_CHARS = 4000  # cap description length sent to the model
+
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.1-8b-instruct:free")  # verify still free/current in OpenRouter's model list
+OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
+
+HF_API_KEY = os.getenv("HF_API_KEY", "")
+HF_MODEL = os.getenv("HF_MODEL", "meta-llama/Llama-3.1-8B-Instruct")  # verify current model availability on HF Inference API
+HF_API_URL = f"https://api-inference.huggingface.co/models/{HF_MODEL}"
+
+AI_TIMEOUT_SECONDS = 15
+AI_MAX_INPUT_CHARS = 4000  # cap description length sent to any model
 
 # --- Logging ---
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
