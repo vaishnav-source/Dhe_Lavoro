@@ -102,6 +102,20 @@ def upsert_jobs(jobs: List[Dict[str, Any]], client: Client | None = None) -> int
     return written
 
 
+def mark_job_expired(fingerprint: str, client: Client | None = None) -> bool:
+    """Mark one job expired by fingerprint — used when a detail-page fetch
+    returns a genuine 404 (posting removed from the live site), so the
+    backfill process stops retrying a dead URL on every future run."""
+    db = client or get_client()
+    result = (
+        db.table("jobs")
+        .update({"status": "expired"})
+        .eq("fingerprint", fingerprint)
+        .execute()
+    )
+    return bool(result.data)
+
+
 def get_jobs_missing_detail(source: str, limit: int = 500, client: Client | None = None) -> List[Dict[str, Any]]:
     """Return active jobs for a source that don't have a contact_email yet
     — these are the ones worth spending a detail-page fetch on. Capped

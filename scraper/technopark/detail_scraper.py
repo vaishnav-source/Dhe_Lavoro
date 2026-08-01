@@ -1,5 +1,6 @@
 from typing import Optional, Dict
 
+import requests
 from bs4 import BeautifulSoup
 
 from scraper.common.http_client import safe_get
@@ -12,18 +13,31 @@ log = get_logger(__name__)
 
 def fetch_job_detail(detail_url: str) -> Dict[str, Optional[str]]:
     """Fetch one Technopark job detail page and pull out description +
-    contact email. Passes a Referer pointing back to the job-search page —
-    without it, requests to this route were getting 404'd (an anti-bot
-    check independent of robots.txt, which does permit this path)."""
+    contact email.
+
+    Returns a dict with an extra 'not_found' flag: True specifically when
+    the server returned 404 — this means the job posting itself was
+    removed from the live site (closing date passed, filled, pulled early),
+    not a fetch failure. The caller uses this to mark the job 'expired'
+    in the DB instead of leaving it forever stuck in the 'still missing
+    detail info' queue, which would otherwise re-attempt the same dead
+    URL on every future backfill run."""
     try:
         resp = safe_get(detail_url, headers={"Referer": TECHNOPARK_LANDING_URL})
+    except requests.HTTPError as exc:
+        status = exc.response.status_code if exc.response is not None else None
+        if status == 404:
+            log.info("Job posting no longer exists (404), will mark expired: %s", detail_url)
+            return {"description": None, "contact_email": None, "not_found": True}
+        log.warning("Failed to fetch detail page %s: %s", detail_url, exc)
+        return {"description": None, "contact_email": None, "not_found": False}
     except Exception as exc:  # noqa: BLE001
         log.warning("Failed to fetch detail page %s: %s", detail_url, exc)
-        return {"description": None, "contact_email": None}
+        return {"description": None, "contact_email": None, "not_found": False}
 
     email = extract_contact_email(resp.text)
 
     soup = BeautifulSoup(resp.text, "html.parser")
     description = soup.get_text(" ", strip=True)[:5000]  # cap length, avoid bloated rows
 
-    return {"description": description, "contact_email": email}
+    return {"description": description, "contact_email": email, "not_found": False}

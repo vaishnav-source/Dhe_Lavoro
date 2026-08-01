@@ -164,12 +164,24 @@ def test_update_job_detail_returns_true_when_row_matched():
     ]
 
 
-def test_update_job_detail_returns_false_when_no_row_matched():
-    from scraper.common.db_writer import update_job_detail
+def test_mark_job_expired_returns_true_when_row_matched():
+    from scraper.common.db_writer import mark_job_expired
+
+    client = FakeClient()
+    client.recorder["update_result"] = [{"id": 1}]
+
+    result = mark_job_expired("fp1", client=client)
+
+    assert result is True
+    assert client.recorder["update_calls"] == [{"status": "expired"}]
+
+
+def test_mark_job_expired_returns_false_when_no_row_matched():
+    from scraper.common.db_writer import mark_job_expired
 
     client = FakeClient()
     client.recorder["update_result"] = []
 
-    updated = update_job_detail("fp-missing", None, None, client=client)
+    result = mark_job_expired("fp-missing", client=client)
 
-    assert updated is False
+    assert result is False

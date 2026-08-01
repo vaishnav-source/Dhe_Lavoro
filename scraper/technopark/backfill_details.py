@@ -8,7 +8,7 @@ Usage: python -m scraper.technopark.backfill_details
 """
 import sys
 
-from scraper.common.db_writer import get_jobs_missing_detail, update_job_detail
+from scraper.common.db_writer import get_jobs_missing_detail, update_job_detail, mark_job_expired
 from scraper.common.rate_limiter import polite_delay
 from scraper.common.logger import get_logger
 from scraper.common.ai_summarizer import summarize_job_description
@@ -24,6 +24,7 @@ def run_backfill(limit: int = 500) -> dict:
     log.info("Found %s %s jobs missing detail info", len(jobs), SOURCE_NAME)
 
     updated = 0
+    expired = 0
     skipped_no_url = 0
 
     for job in jobs:
@@ -33,6 +34,15 @@ def run_backfill(limit: int = 500) -> dict:
             continue
 
         detail = fetch_job_detail(detail_url)
+
+        if detail.get("not_found"):
+            # posting no longer exists on the live site — stop retrying it
+            # on every future backfill run
+            mark_job_expired(fingerprint=job["fingerprint"])
+            expired += 1
+            polite_delay()
+            continue
+
         short_description = summarize_job_description(detail["description"])
         update_job_detail(
             fingerprint=job["fingerprint"],
@@ -43,12 +53,12 @@ def run_backfill(limit: int = 500) -> dict:
         updated += 1
         polite_delay()
 
-    stats = {"found": len(jobs), "updated": updated, "skipped_no_url": skipped_no_url}
+    stats = {"found": len(jobs), "updated": updated, "expired": expired, "skipped_no_url": skipped_no_url}
     log.info("Backfill complete: %s", stats)
     return stats
 
 
 if __name__ == "__main__":
     result = run_backfill()
-    if result["updated"] == 0 and result["found"] > 0:
+    if result["updated"] == 0 and result["expired"] == 0 and result["found"] > 0:
         sys.exit(1)

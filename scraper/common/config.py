@@ -54,12 +54,14 @@ GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")  # fast/cheap — v
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
-OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.1-8b-instruct:free")  # verify still free/current in OpenRouter's model list
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free")  # OpenRouter's free-tier model IDs rotate often — re-check openrouter.ai/models if this 404s again
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 HF_API_KEY = os.getenv("HF_API_KEY", "")
-HF_MODEL = os.getenv("HF_MODEL", "meta-llama/Llama-3.1-8B-Instruct")  # verify current model availability on HF Inference API
-HF_API_URL = f"https://api-inference.huggingface.co/models/{HF_MODEL}"
+HF_MODEL = os.getenv("HF_MODEL", "meta-llama/Llama-3.1-8B-Instruct")
+# Hugging Face retired api-inference.huggingface.co (returns 410) in favor of
+# this router domain — same models, new host+path prefix.
+HF_API_URL = f"https://router.huggingface.co/hf-inference/models/{HF_MODEL}"
 
 AI_TIMEOUT_SECONDS = 15
 AI_MAX_INPUT_CHARS = 4000  # cap description length sent to any model
