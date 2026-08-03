@@ -63,7 +63,7 @@ HF_MODEL = os.getenv("HF_MODEL", "meta-llama/Llama-3.1-8B-Instruct")
 # this router domain — same models, new host+path prefix.
 HF_API_URL = f"https://router.huggingface.co/hf-inference/models/{HF_MODEL}"
 
-AI_TIMEOUT_SECONDS = 15
+AI_TIMEOUT_SECONDS = 30
 AI_MAX_INPUT_CHARS = 4000  # cap description length sent to any model
 
 # --- Logging ---
