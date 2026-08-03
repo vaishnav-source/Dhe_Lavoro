@@ -95,7 +95,6 @@ def upsert_jobs(jobs: List[Dict[str, Any]], client: Client | None = None) -> int
             written += len(rows)
         except Exception as exc:  # noqa: BLE001
             log.error("Batch upsert failed (%s rows): %s", len(rows), exc)
-            # continue with remaining batches rather than aborting the whole run
             continue
 
     log.info("Upserted %s/%s jobs (%s duplicates removed)", written, len(deduped), len(jobs) - len(deduped))
@@ -116,18 +115,44 @@ def mark_job_expired(fingerprint: str, client: Client | None = None) -> bool:
     return bool(result.data)
 
 
+def get_jobs_missing_summary(source: str, limit: int = 500, client: Client | None = None) -> List[Dict[str, Any]]:
+    """Return active jobs for a source that already have a description but
+    no short_description yet — for backfilling AI summaries after a run
+    where the summarizer was broken/rate-limited, without re-fetching the
+    detail pages (description + contact_email are already stored)."""
+    db = client or get_client()
+    result = (
+        db.table("jobs")
+        .select("id, fingerprint, description, contact_email")
+        .eq("source", source)
+        .eq("status", "active")
+        .not_.is_("description", "null")
+        .is_("short_description", "null")
+        .limit(limit)
+        .execute()
+    )
+    return result.data or []
+
+
 def get_jobs_missing_detail(source: str, limit: int = 500, client: Client | None = None) -> List[Dict[str, Any]]:
-    """Return active jobs for a source that don't have a contact_email yet
-    — these are the ones worth spending a detail-page fetch on. Capped
-    with a limit so one call can't accidentally try to pull an unbounded
-    number of rows into memory."""
+    """Return active jobs for a source that haven't had their detail page
+    fetched yet.
+
+    Filters on description IS NULL rather than contact_email IS NULL —
+    description only stays null if the detail page was never successfully
+    fetched at all. contact_email can legitimately stay null even after a
+    successful fetch (some job postings simply don't list a contact email
+    on the page), and filtering on that would re-fetch the same page on
+    every future backfill run forever, wasting requests on jobs that just
+    don't have one. Capped with a limit so one call can't accidentally
+    try to pull an unbounded number of rows into memory."""
     db = client or get_client()
     result = (
         db.table("jobs")
         .select("id, fingerprint, detail_url")
         .eq("source", source)
         .eq("status", "active")
-        .is_("contact_email", "null")
+        .is_("description", "null")
         .limit(limit)
         .execute()
     )

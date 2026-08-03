@@ -6,6 +6,15 @@ class FakeExecuteResult:
         self.data = data
 
 
+class _NotProxy:
+    def __init__(self, query):
+        self.query = query
+
+    def is_(self, col, val):
+        self.query.recorder.setdefault("not_is_filters", []).append((col, val))
+        return self.query
+
+
 class FakeQuery:
     """Chainable fake mimicking just enough of supabase-py's fluent query
     builder for upsert_jobs() and mark_stale_jobs_expired()."""
@@ -14,6 +23,10 @@ class FakeQuery:
         self.recorder = recorder
         self._mode = None  # "select" | "update" | "upsert"
         self._update_ids = None
+
+    @property
+    def not_(self):
+        return _NotProxy(self)
 
     def upsert(self, rows, on_conflict=None):
         self.recorder["upserted_rows"].append(rows)
@@ -138,6 +151,19 @@ def test_mark_stale_jobs_no_stale_rows_skips_update():
     assert "update_calls" not in client.recorder
 
 
+def test_get_jobs_missing_summary_returns_active_rows():
+    from scraper.common.db_writer import get_jobs_missing_summary
+
+    active_rows = [{"id": 1, "fingerprint": "fp1", "description": "desc", "contact_email": "a@b.com"}]
+    client = FakeClient(active_rows=active_rows)
+
+    jobs = get_jobs_missing_summary("infopark", client=client)
+
+    assert jobs == active_rows
+    assert ("description", "null") in client.recorder["not_is_filters"]
+    assert ("short_description", "null") in client.recorder["is_filters"]
+
+
 def test_get_jobs_missing_detail_returns_active_rows():
     from scraper.common.db_writer import get_jobs_missing_detail
 
@@ -147,7 +173,7 @@ def test_get_jobs_missing_detail_returns_active_rows():
     jobs = get_jobs_missing_detail("infopark", client=client)
 
     assert jobs == active_rows
-    assert ("contact_email", "null") in client.recorder["is_filters"]
+    assert ("description", "null") in client.recorder["is_filters"]
 
 
 def test_update_job_detail_returns_true_when_row_matched():
@@ -162,6 +188,17 @@ def test_update_job_detail_returns_true_when_row_matched():
     assert client.recorder["update_calls"] == [
         {"description": "some description", "contact_email": "hr@company.com"}
     ]
+
+
+def test_update_job_detail_returns_false_when_no_row_matched():
+    from scraper.common.db_writer import update_job_detail
+
+    client = FakeClient()
+    client.recorder["update_result"] = []
+
+    updated = update_job_detail("fp-missing", None, None, client=client)
+
+    assert updated is False
 
 
 def test_mark_job_expired_returns_true_when_row_matched():
