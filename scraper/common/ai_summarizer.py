@@ -10,6 +10,7 @@ tracking. A provider with no API key set is skipped silently (not an
 error) so this works with only Groq configured, or all three.
 """
 from typing import Optional, Callable, List, Tuple
+import time
 
 import requests
 
@@ -83,30 +84,48 @@ def _call_huggingface(description: str) -> str:
 
 
 # Ordered fallback chain — name kept alongside the function purely for logging.
+# Hugging Face intentionally dropped: its new router.huggingface.co endpoint
+# needs a different request shape than the old api-inference domain, and has
+# been the flakiest link overall — Groq + OpenRouter alone cover this well
+# with a consistent OpenAI-compatible format. _call_huggingface() is left
+# defined above in case it's worth re-adding later with the corrected format.
 PROVIDERS: List[Tuple[str, Callable[[str], str]]] = [
     ("groq", _call_groq),
     ("openrouter", _call_openrouter),
-    ("huggingface", _call_huggingface),
 ]
 
 # Sticky cursor: once a provider fails (rate limit, missing key, etc), we
 # start subsequent calls from the next provider instead of re-trying the
-# exhausted one every single job. This resets only when the process
-# restarts (e.g. next scheduled backfill run) — within one run, once Groq
-# is rate-limited at job 15, jobs 16+ go straight to OpenRouter instead of
+# exhausted one every single job. Within one run, once Groq is
+# rate-limited at job 15, jobs 16+ go straight to OpenRouter instead of
 # wasting a failing call on Groq each time.
 _provider_start_index = 0
+
+# If every provider is exhausted, we don't stay stuck for the rest of a
+# long batch run (rate limits are often per-minute, not permanent) — after
+# this many seconds, the next call resets the cursor to 0 and gives every
+# provider another chance.
+_last_exhausted_at: Optional[float] = None
+COOLDOWN_SECONDS = 60
 
 
 def summarize_job_description(description: Optional[str]) -> Optional[str]:
     """Tries providers starting from the current sticky cursor, advancing
     it forward on failure so later calls in the same run skip providers
-    already known to be exhausted. Returns None if description is empty,
-    no provider is configured, or every remaining provider fails."""
-    global _provider_start_index
+    already known to be exhausted. If every provider is exhausted, the
+    cursor auto-resets after COOLDOWN_SECONDS so a long run can recover
+    once a rate limit window passes, rather than staying dead until the
+    process restarts. Returns None if description is empty, no provider
+    is configured, or every remaining provider still fails."""
+    global _provider_start_index, _last_exhausted_at
 
     if not description or not description.strip():
         return None
+
+    if _provider_start_index >= len(PROVIDERS) and _last_exhausted_at is not None:
+        if time.time() - _last_exhausted_at >= COOLDOWN_SECONDS:
+            log.info("Cooldown elapsed — retrying providers from the top")
+            _provider_start_index = 0
 
     for i in range(_provider_start_index, len(PROVIDERS)):
         name, call_fn = PROVIDERS[i]
@@ -124,5 +143,6 @@ def summarize_job_description(description: Optional[str]) -> Optional[str]:
             _provider_start_index = i + 1
             continue
 
+    _last_exhausted_at = time.time()
     log.error("All remaining AI providers failed or unconfigured — no summary produced")
     return None

@@ -11,6 +11,7 @@ def reset_cursor(monkeypatch):
     order could leak state between tests (a prior test advancing the
     cursor would make a later test skip a provider it expects to hit)."""
     monkeypatch.setattr(ai_summarizer, "_provider_start_index", 0)
+    monkeypatch.setattr(ai_summarizer, "_last_exhausted_at", None)
 
 
 def test_empty_description_returns_none_without_calling_any_provider(monkeypatch):
@@ -130,6 +131,34 @@ def test_sticky_cursor_skips_exhausted_provider_on_later_calls(monkeypatch):
     result_16 = summarize_job_description("job 16 description")
     assert result_16 == "OpenRouter summary for: job 16 description"
     assert groq_call_count["n"] == 1  # unchanged — groq was skipped this time
+
+
+def test_cooldown_resets_cursor_after_all_exhausted(monkeypatch):
+    reset_cursor(monkeypatch)
+
+    call_log = []
+
+    def groq_fails_then_succeeds(desc):
+        call_log.append("groq")
+        if len(call_log) == 1:
+            raise requests.HTTPError("429 Too Many Requests")
+        return "Groq summary after cooldown"
+
+    monkeypatch.setattr(ai_summarizer, "PROVIDERS", [("groq", groq_fails_then_succeeds)])
+    monkeypatch.setattr(ai_summarizer, "COOLDOWN_SECONDS", 0)  # instant cooldown for the test
+
+    fake_now = {"t": 1000.0}
+    monkeypatch.setattr(ai_summarizer.time, "time", lambda: fake_now["t"])
+
+    # first call: groq fails, cursor exhausted (index 1, len(PROVIDERS)=1)
+    result1 = ai_summarizer.summarize_job_description("desc 1")
+    assert result1 is None
+
+    # advance fake clock past the (zeroed) cooldown, then call again
+    fake_now["t"] += 1
+    result2 = ai_summarizer.summarize_job_description("desc 2")
+    assert result2 == "Groq summary after cooldown"
+    assert call_log == ["groq", "groq"]
 
 
 def test_call_groq_parses_response_shape(monkeypatch):
