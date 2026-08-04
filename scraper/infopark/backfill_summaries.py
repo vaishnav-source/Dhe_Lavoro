@@ -8,6 +8,7 @@ all.
 Usage: python -m scraper.infopark.backfill_summaries
 """
 import sys
+import time
 
 from scraper.common.db_writer import get_jobs_missing_summary, update_job_detail
 from scraper.common.ai_summarizer import summarize_job_description
@@ -16,6 +17,11 @@ from scraper.common.logger import get_logger
 log = get_logger(__name__)
 
 SOURCE_NAME = "infopark"
+
+# Small pause between AI calls — spreads requests out over time instead of
+# firing them back-to-back, which is what most easily trips a per-minute
+# rate limit in the first place.
+CALL_DELAY_SECONDS = 2
 
 
 def run_summary_backfill(limit: int = 500) -> dict:
@@ -26,6 +32,7 @@ def run_summary_backfill(limit: int = 500) -> dict:
     for job in jobs:
         short_description = summarize_job_description(job.get("description"))
         if short_description is None:
+            time.sleep(CALL_DELAY_SECONDS)
             continue  # still no provider available — leave for next run
         update_job_detail(
             fingerprint=job["fingerprint"],
@@ -34,6 +41,7 @@ def run_summary_backfill(limit: int = 500) -> dict:
             short_description=short_description,
         )
         updated += 1
+        time.sleep(CALL_DELAY_SECONDS)
 
     stats = {"found": len(jobs), "updated": updated}
     log.info("Summary backfill complete: %s", stats)
