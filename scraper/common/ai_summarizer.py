@@ -47,7 +47,10 @@ def _call_groq(description: str) -> str:
     headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
     resp = requests.post(GROQ_API_URL, json=payload, headers=headers, timeout=AI_TIMEOUT_SECONDS)
     resp.raise_for_status()
-    return resp.json()["choices"][0]["message"]["content"].strip()
+    content = resp.json()["choices"][0]["message"].get("content")
+    if not content:
+        raise RuntimeError("Groq response had empty/null content")
+    return content.strip()
 
 
 def _call_openrouter(description: str) -> str:
@@ -65,7 +68,10 @@ def _call_openrouter(description: str) -> str:
     headers = {"Authorization": f"Bearer {OPENROUTER_API_KEY}", "Content-Type": "application/json"}
     resp = requests.post(OPENROUTER_API_URL, json=payload, headers=headers, timeout=AI_TIMEOUT_SECONDS)
     resp.raise_for_status()
-    return resp.json()["choices"][0]["message"]["content"].strip()
+    content = resp.json()["choices"][0]["message"].get("content")
+    if not content:
+        raise RuntimeError("OpenRouter response had empty/null content")
+    return content.strip()
 
 
 def _call_huggingface(description: str) -> str:

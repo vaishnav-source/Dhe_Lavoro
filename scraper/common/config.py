@@ -54,7 +54,10 @@ GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")  # fast/cheap — v
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
-OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free")  # OpenRouter's free-tier model IDs rotate often — re-check openrouter.ai/models if this 404s again
+# "openrouter/free" auto-routes to whatever free model is currently live on
+# OpenRouter — avoids hardcoding a specific :free model ID, since those get
+# delisted/rotated out on short notice (confirmed twice already).
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openrouter/free")
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 HF_API_KEY = os.getenv("HF_API_KEY", "")
