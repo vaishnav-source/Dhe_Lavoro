@@ -1,13 +1,12 @@
 """
 Summarizes a job's full description into a short 2-3 sentence blurb.
 
-Tries multiple AI providers in order (Groq -> OpenRouter -> Hugging Face)
-rather than retrying one provider through a rate limit. If a provider is
-rate-limited or its API key isn't configured, we move straight to the next
-one instead of waiting — much faster for a batch backfill run than
-sitting through Retry-After delays, and doesn't need per-provider quota
-tracking. A provider with no API key set is skipped silently (not an
-error) so this works with only Groq configured, or all three.
+Tries multiple AI providers in order (Groq -> NVIDIA NIM) rather than
+retrying one provider through a rate limit. If a provider is rate-limited
+or its API key isn't configured, we move straight to the next one instead
+of waiting — much faster for a batch backfill run than sitting through
+Retry-After delays, and doesn't need per-provider quota tracking. A
+provider with no API key set is skipped silently (not an error).
 """
 from typing import Optional, Callable, List, Tuple
 import time
@@ -16,6 +15,7 @@ import requests
 
 from scraper.common.config import (
     GROQ_API_KEY, GROQ_MODEL, GROQ_API_URL,
+    NVIDIA_API_KEY, NVIDIA_MODEL, NVIDIA_API_URL,
     OPENROUTER_API_KEY, OPENROUTER_MODEL, OPENROUTER_API_URL,
     HF_API_KEY, HF_MODEL, HF_API_URL,
     AI_TIMEOUT_SECONDS, AI_MAX_INPUT_CHARS,
@@ -74,6 +74,27 @@ def _call_openrouter(description: str) -> str:
     return content.strip()
 
 
+def _call_nvidia(description: str) -> str:
+    if not NVIDIA_API_KEY:
+        raise RuntimeError("NVIDIA_API_KEY not set")
+    payload = {
+        "model": NVIDIA_MODEL,
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": description[:AI_MAX_INPUT_CHARS]},
+        ],
+        "temperature": 0.3,
+        "max_tokens": 200,
+    }
+    headers = {"Authorization": f"Bearer {NVIDIA_API_KEY}", "Content-Type": "application/json"}
+    resp = requests.post(NVIDIA_API_URL, json=payload, headers=headers, timeout=AI_TIMEOUT_SECONDS)
+    resp.raise_for_status()
+    content = resp.json()["choices"][0]["message"].get("content")
+    if not content:
+        raise RuntimeError("NVIDIA NIM response had empty/null content")
+    return content.strip()
+
+
 def _call_huggingface(description: str) -> str:
     if not HF_API_KEY:
         raise RuntimeError("HF_API_KEY not set")
@@ -90,14 +111,15 @@ def _call_huggingface(description: str) -> str:
 
 
 # Ordered fallback chain — name kept alongside the function purely for logging.
-# Hugging Face intentionally dropped: its new router.huggingface.co endpoint
-# needs a different request shape than the old api-inference domain, and has
-# been the flakiest link overall — Groq + OpenRouter alone cover this well
-# with a consistent OpenAI-compatible format. _call_huggingface() is left
-# defined above in case it's worth re-adding later with the corrected format.
+# NVIDIA NIM replaces OpenRouter here: OpenRouter's free-tier model IDs kept
+# getting delisted (twice) and even the "openrouter/free" auto-router
+# returned empty content unreliably. NVIDIA NIM's free tier (~40 req/min,
+# no credit card, OpenAI-compatible) has been steadier. Hugging Face stays
+# out for the same reason as before — _call_openrouter/_call_huggingface
+# are left defined above in case either is worth re-adding later.
 PROVIDERS: List[Tuple[str, Callable[[str], str]]] = [
     ("groq", _call_groq),
-    ("openrouter", _call_openrouter),
+    ("nvidia", _call_nvidia),
 ]
 
 # Sticky cursor: once a provider fails (rate limit, missing key, etc), we

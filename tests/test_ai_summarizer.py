@@ -161,6 +161,74 @@ def test_cooldown_resets_cursor_after_all_exhausted(monkeypatch):
     assert call_log == ["groq", "groq"]
 
 
+def test_call_nvidia_parses_response_shape(monkeypatch):
+    monkeypatch.setattr(ai_summarizer, "NVIDIA_API_KEY", "fake-key")
+
+    fake_resp = MagicMock()
+    fake_resp.raise_for_status = lambda: None
+    fake_resp.json = lambda: {"choices": [{"message": {"content": "  NVIDIA summary.  "}}]}
+    monkeypatch.setattr(requests, "post", lambda *a, **k: fake_resp)
+
+    result = ai_summarizer._call_nvidia("Some job description")
+
+    assert result == "NVIDIA summary."
+
+
+def test_call_nvidia_raises_on_null_content(monkeypatch):
+    monkeypatch.setattr(ai_summarizer, "NVIDIA_API_KEY", "fake-key")
+
+    fake_resp = MagicMock()
+    fake_resp.raise_for_status = lambda: None
+    fake_resp.json = lambda: {"choices": [{"message": {"content": None}}]}
+    monkeypatch.setattr(requests, "post", lambda *a, **k: fake_resp)
+
+    try:
+        ai_summarizer._call_nvidia("Some description")
+        assert False, "expected RuntimeError"
+    except RuntimeError:
+        pass
+
+
+def test_call_nvidia_missing_key_raises(monkeypatch):
+    monkeypatch.setattr(ai_summarizer, "NVIDIA_API_KEY", "")
+
+    try:
+        ai_summarizer._call_nvidia("Some description")
+        assert False, "expected RuntimeError"
+    except RuntimeError:
+        pass
+
+
+def test_call_groq_raises_on_null_content(monkeypatch):
+    monkeypatch.setattr(ai_summarizer, "GROQ_API_KEY", "fake-key")
+
+    fake_resp = MagicMock()
+    fake_resp.raise_for_status = lambda: None
+    fake_resp.json = lambda: {"choices": [{"message": {"content": None}}]}
+    monkeypatch.setattr(requests, "post", lambda *a, **k: fake_resp)
+
+    try:
+        ai_summarizer._call_groq("Some description")
+        assert False, "expected RuntimeError"
+    except RuntimeError:
+        pass
+
+
+def test_call_openrouter_raises_on_null_content(monkeypatch):
+    monkeypatch.setattr(ai_summarizer, "OPENROUTER_API_KEY", "fake-key")
+
+    fake_resp = MagicMock()
+    fake_resp.raise_for_status = lambda: None
+    fake_resp.json = lambda: {"choices": [{"message": {"content": None}}]}
+    monkeypatch.setattr(requests, "post", lambda *a, **k: fake_resp)
+
+    try:
+        ai_summarizer._call_openrouter("Some description")
+        assert False, "expected RuntimeError"
+    except RuntimeError:
+        pass
+
+
 def test_call_groq_parses_response_shape(monkeypatch):
     monkeypatch.setattr(ai_summarizer, "GROQ_API_KEY", "fake-key")
 

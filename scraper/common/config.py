@@ -48,15 +48,20 @@ RETRY_BACKOFF_SECONDS = 2  # exponential base
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")  # server-side key, never expose to frontend
 
-# --- AI summarization (multi-provider fallback: Groq -> OpenRouter -> Hugging Face) ---
+# --- AI summarization (multi-provider fallback: Groq -> NVIDIA NIM) ---
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")  # fast/cheap — verify current model name in Groq's docs, names change
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
+NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY", "")
+NVIDIA_MODEL = os.getenv("NVIDIA_MODEL", "meta/llama-3.3-70b-instruct")
+NVIDIA_API_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
+
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 # "openrouter/free" auto-routes to whatever free model is currently live on
 # OpenRouter — avoids hardcoding a specific :free model ID, since those get
-# delisted/rotated out on short notice (confirmed twice already).
+# delisted/rotated out on short notice (confirmed twice already). Kept
+# configured but not in the active PROVIDERS chain — see ai_summarizer.py.
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openrouter/free")
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
