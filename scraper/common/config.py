@@ -72,7 +72,12 @@ HF_MODEL = os.getenv("HF_MODEL", "meta-llama/Llama-3.1-8B-Instruct")
 HF_API_URL = f"https://router.huggingface.co/hf-inference/models/{HF_MODEL}"
 
 AI_TIMEOUT_SECONDS = 30
-AI_MAX_INPUT_CHARS = 4000  # cap description length sent to any model
+AI_MAX_INPUT_CHARS = 1500  # kept small deliberately — Groq's free tier caps at
+# 20,000 tokens/minute (TPM), not just 30 requests/minute (RPM). A 4000-char
+# input pushed each call over ~1000+ tokens, blowing the TPM budget well
+# before the RPM one. 1500 chars (~400 tokens) leaves headroom for the
+# system prompt + output tokens while still giving the model enough of the
+# description to summarize accurately.
 
 # --- Logging ---
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")

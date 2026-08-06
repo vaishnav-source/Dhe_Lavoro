@@ -21,7 +21,9 @@ SOURCE_NAME = "infopark"
 # Small pause between AI calls — spreads requests out over time instead of
 # firing them back-to-back, which is what most easily trips a per-minute
 # rate limit in the first place.
-CALL_DELAY_SECONDS = 2
+# 5s spacing keeps us safely under Groq's 20,000 TPM free-tier limit
+# (measured, not just its 30 RPM cap) even with the reduced input size.
+CALL_DELAY_SECONDS = 5
 
 
 def run_summary_backfill(limit: int = 500) -> dict:

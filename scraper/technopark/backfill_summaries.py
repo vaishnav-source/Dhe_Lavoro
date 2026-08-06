@@ -16,7 +16,9 @@ log = get_logger(__name__)
 
 SOURCE_NAME = "technopark"
 
-CALL_DELAY_SECONDS = 2
+# 5s spacing keeps us safely under Groq's 20,000 TPM free-tier limit
+# (measured, not just its 30 RPM cap) even with the reduced input size.
+CALL_DELAY_SECONDS = 5
 
 
 def run_summary_backfill(limit: int = 500) -> dict:

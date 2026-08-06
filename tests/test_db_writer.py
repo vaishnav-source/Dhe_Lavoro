@@ -43,6 +43,14 @@ class FakeQuery:
         self._mode = "update"
         return self
 
+    def delete(self):
+        self._mode = "delete"
+        return self
+
+    def lt(self, col, val):
+        self.recorder.setdefault("lt_filters", []).append((col, val))
+        return self
+
     def eq(self, col, val):
         self.recorder.setdefault("eq_filters", []).append((col, val))
         return self
@@ -65,6 +73,9 @@ class FakeQuery:
             return FakeExecuteResult(data=self.recorder.get("active_rows", []))
         if self._mode == "update":
             return FakeExecuteResult(data=[{"id": i} for i in (self._update_ids or [])] or self.recorder.get("update_result", []))
+        if self._mode == "delete":
+            self.recorder.setdefault("deleted_ids", []).extend(self._update_ids or [])
+            return FakeExecuteResult(data=[{"id": i} for i in (self._update_ids or [])])
         if self._mode == "upsert":
             return FakeExecuteResult(data=self.recorder["upserted_rows"][-1])
         return FakeExecuteResult(data=[])
@@ -137,7 +148,9 @@ def test_mark_stale_jobs_expires_only_missing_ones():
     count = mark_stale_jobs_expired("infopark", ["fp1", "fp3"], client=client)
 
     assert count == 1
-    assert client.recorder["update_calls"] == [{"status": "expired"}]
+    assert len(client.recorder["update_calls"]) == 1
+    assert client.recorder["update_calls"][0]["status"] == "expired"
+    assert "expired_at" in client.recorder["update_calls"][0]
     assert client.recorder["in_calls"] == [("id", [2])]
 
 
@@ -210,7 +223,9 @@ def test_mark_job_expired_returns_true_when_row_matched():
     result = mark_job_expired("fp1", client=client)
 
     assert result is True
-    assert client.recorder["update_calls"] == [{"status": "expired"}]
+    assert len(client.recorder["update_calls"]) == 1
+    assert client.recorder["update_calls"][0]["status"] == "expired"
+    assert "expired_at" in client.recorder["update_calls"][0]
 
 
 def test_mark_job_expired_returns_false_when_no_row_matched():
@@ -222,3 +237,27 @@ def test_mark_job_expired_returns_false_when_no_row_matched():
     result = mark_job_expired("fp-missing", client=client)
 
     assert result is False
+
+
+def test_delete_expired_jobs_deletes_old_rows():
+    from scraper.common.db_writer import delete_expired_jobs
+
+    active_rows = [{"id": 1}, {"id": 2}]
+    client = FakeClient(active_rows=active_rows)
+
+    deleted = delete_expired_jobs(older_than_days=1, client=client)
+
+    assert deleted == 2
+    assert ("status", "expired") in client.recorder["eq_filters"]
+    assert client.recorder["deleted_ids"] == [1, 2]
+
+
+def test_delete_expired_jobs_no_rows_to_delete():
+    from scraper.common.db_writer import delete_expired_jobs
+
+    client = FakeClient(active_rows=[])
+
+    deleted = delete_expired_jobs(older_than_days=1, client=client)
+
+    assert deleted == 0
+    assert "deleted_ids" not in client.recorder

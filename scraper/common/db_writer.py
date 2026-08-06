@@ -18,6 +18,7 @@ Schema assumed (create this table in Supabase SQL editor first):
         contact_email text,                  -- filled in by detail-page backfill
         short_description text,              -- AI-generated summary (Groq), filled in by backfill
         status text not null default 'active',   -- 'active' | 'expired'
+        expired_at timestamptz,              -- set the moment status flips to 'expired'
         last_seen_at timestamptz not null default now(),
         created_at timestamptz not null default now()
     );
@@ -31,8 +32,10 @@ existed, run this migration instead of recreating the table:
     alter table jobs add column if not exists description text;
     alter table jobs add column if not exists contact_email text;
     alter table jobs add column if not exists short_description text;
+    alter table jobs add column if not exists expired_at timestamptz;
 """
 from typing import List, Dict, Any, Optional
+from datetime import datetime, timezone, timedelta
 
 from supabase import Client
 
@@ -42,6 +45,10 @@ from scraper.common.logger import get_logger
 log = get_logger(__name__)
 
 BATCH_SIZE = 200  # keep individual requests small/predictable
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
 
 def _chunk(items: List[Dict[str, Any]], size: int):
@@ -95,6 +102,7 @@ def upsert_jobs(jobs: List[Dict[str, Any]], client: Client | None = None) -> int
             written += len(rows)
         except Exception as exc:  # noqa: BLE001
             log.error("Batch upsert failed (%s rows): %s", len(rows), exc)
+            # continue with remaining batches rather than aborting the whole run
             continue
 
     log.info("Upserted %s/%s jobs (%s duplicates removed)", written, len(deduped), len(jobs) - len(deduped))
@@ -108,7 +116,7 @@ def mark_job_expired(fingerprint: str, client: Client | None = None) -> bool:
     db = client or get_client()
     result = (
         db.table("jobs")
-        .update({"status": "expired"})
+        .update({"status": "expired", "expired_at": _now_iso()})
         .eq("fingerprint", fingerprint)
         .execute()
     )
@@ -226,7 +234,7 @@ def mark_stale_jobs_expired(source: str, seen_fingerprints: List[str], client: C
         batch_ids = [row["id"] for row in batch]
         result = (
             db.table("jobs")
-            .update({"status": "expired"})
+            .update({"status": "expired", "expired_at": _now_iso()})
             .in_("id", batch_ids)
             .execute()
         )
@@ -234,3 +242,35 @@ def mark_stale_jobs_expired(source: str, seen_fingerprints: List[str], client: C
 
     log.info("Marked %s stale %s jobs as expired", updated, source)
     return updated
+
+
+def delete_expired_jobs(older_than_days: int = 1, client: Client | None = None) -> int:
+    """Permanently deletes jobs that have been 'expired' for more than
+    older_than_days. NOTE: this is a hard delete — data is gone, including
+    for any user's application history referencing that job. Only call
+    this if you're fine with that tradeoff (see PRD data-lifecycle note);
+    otherwise leave expired rows in place, they cost negligible storage."""
+    db = client or get_client()
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=older_than_days)).isoformat()
+
+    rows = (
+        db.table("jobs")
+        .select("id")
+        .eq("status", "expired")
+        .lt("expired_at", cutoff)
+        .execute()
+    ).data or []
+
+    if not rows:
+        log.info("No expired jobs older than %s day(s) to delete", older_than_days)
+        return 0
+
+    ids = [row["id"] for row in rows]
+    deleted = 0
+    for batch in _chunk([{"id": i} for i in ids], BATCH_SIZE):
+        batch_ids = [row["id"] for row in batch]
+        result = db.table("jobs").delete().in_("id", batch_ids).execute()
+        deleted += len(result.data) if getattr(result, "data", None) else len(batch_ids)
+
+    log.info("Deleted %s expired jobs older than %s day(s)", deleted, older_than_days)
+    return deleted
