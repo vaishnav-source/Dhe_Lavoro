@@ -15,11 +15,17 @@ ALLOWED_HOSTS = {
 }
 
 INFOPARK_BASE_URL = "https://infopark.in/companies-job"
-INFOPARK_MAX_PAGES = 24
+INFOPARK_MAX_PAGES = 1000  # safety ceiling only — real stop is an empty page
+# (see infopark/scraper.py). Set high on purpose: if Infopark's listing
+# grows past today's ~24 pages, the scraper must keep following it rather
+# than silently truncating at a number that made sense today.
 
 TECHNOPARK_LANDING_URL = "https://technopark.in/job-search?search=&type=Job"
 TECHNOPARK_PAGINATED_URL = "https://technopark.in/paginated-jobs"
-TECHNOPARK_MAX_PAGES = 50  # safety ceiling — real loop stops on empty page
+TECHNOPARK_MAX_PAGES = 1000  # safety ceiling only — real stop is a run of
+# stagnant scrolls with no new page (see technopark/scraper.py). Same
+# reasoning as INFOPARK_MAX_PAGES: don't hardcode today's page count as a
+# future limit.
 TECHNOPARK_DETAIL_URL_TEMPLATE = "https://technopark.in/job-details/{job_id}?job={title}"
 
 # --- Networking ---
