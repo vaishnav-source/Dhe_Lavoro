@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-stock text-inktext font-body antialiased;
+  }
+  ::selection {
+    @apply bg-gold/30;
+  }
+  *:focus-visible {
+    outline: 2px solid theme('colors.park.DEFAULT');
+    outline-offset: 2px;
+  }
+}
+
+/* Signature: visitor-pass / ID-badge card — punch hole + dashed tear line,
+   grounded in the real "Visitor Pass" language on Infopark/Technopark's
+   own sites. */
+.badge-hole {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background: theme('colors.stock');
+  border: 1.5px solid theme('colors.hairline');
+}
+
+.badge-tear {
+  border-top: 1.5px dashed theme('colors.hairline');
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .badge-card {
+    transition: transform 180ms ease, box-shadow 180ms ease;
+  }
+  .badge-card:hover {
+    transform: translateY(-3px) rotate(-0.3deg);
+  }
+}
