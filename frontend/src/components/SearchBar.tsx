@@ -15,7 +15,7 @@ export default function SearchBar({ value, onChange, source, onSourceChange }: P
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="search role or company"
-          className="w-full bg-transparent py-2.5 text-sm font-body placeholder:text-inktext/40 focus:outline-none"
+          className="w-full bg-transparent py-2.5 text-sm font-body text-black placeholder:text-inktext/40 focus:outline-none"
         />
       </div>
       <div className="flex gap-1 px-1">

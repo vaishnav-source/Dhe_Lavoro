@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { listJobs } from "../api/client";
 import type { Job } from "../types";
 import JobCard from "../components/JobCard";
@@ -7,17 +8,42 @@ import SearchBar from "../components/SearchBar";
 const LIMIT = 20;
 
 export default function JobListPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [jobs, setJobs] = useState<Job[]>([]);
   const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-  const [source, setSource] = useState("");
+  // Search/source/page are seeded from the URL on first render so that
+  // navigating back from a job detail page restores exactly what the
+  // user had searched for, instead of resetting to a blank list.
+  const [page, setPage] = useState(Number(searchParams.get("page")) || 1);
+  const [search, setSearch] = useState(searchParams.get("search") || "");
+  const [source, setSource] = useState(searchParams.get("source") || "");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Skip the "reset page to 1" effect on the very first render — search/
+  // source are already correct from the URL then, and resetting page
+  // would undo the restored page number before the user sees it.
+  const isFirstRender = useRef(true);
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     setPage(1);
   }, [search, source]);
+
+  // Keep the URL in sync with the current filter/page state (replace, not
+  // push, so typing in the search box doesn't spam browser history) —
+  // this is what makes the back button land on the right search+page.
+  useEffect(() => {
+    const params: Record<string, string> = {};
+    if (search) params.search = search;
+    if (source) params.source = source;
+    if (page > 1) params.page = String(page);
+    setSearchParams(params, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, source, page]);
 
   useEffect(() => {
     let cancelled = false;

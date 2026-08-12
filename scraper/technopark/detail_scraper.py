@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 
 from scraper.common.http_client import safe_get
 from scraper.common.email_extractor import extract_contact_email
+from scraper.common.html_cleaner import extract_main_text
 from scraper.common.config import TECHNOPARK_LANDING_URL
 from scraper.common.logger import get_logger
 
@@ -38,6 +39,6 @@ def fetch_job_detail(detail_url: str) -> Dict[str, Optional[str]]:
     email = extract_contact_email(resp.text)
 
     soup = BeautifulSoup(resp.text, "html.parser")
-    description = soup.get_text(" ", strip=True)[:5000]  # cap length, avoid bloated rows
+    description = extract_main_text(soup)
 
     return {"description": description, "contact_email": email, "not_found": False}
