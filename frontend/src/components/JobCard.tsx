@@ -9,6 +9,11 @@ function daysUntil(dateStr: string | null): number | null {
   return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 }
 
+const SOURCE_LABEL: Record<string, string> = {
+  infopark: "Infopark",
+  technopark: "Technopark",
+};
+
 export default function JobCard({ job }: { job: Job }) {
   const remaining = daysUntil(job.closing_date);
   const urgent = remaining !== null && remaining <= 5 && remaining >= 0;
@@ -16,17 +21,18 @@ export default function JobCard({ job }: { job: Job }) {
   return (
     <Link
       to={`/jobs/${job.id}`}
-      className="badge-card group block rounded-xl bg-surface border border-hairline shadow-sm overflow-hidden"
+      className="badge-card group flex flex-col h-full rounded-xl bg-surface border border-hairline shadow-sm overflow-hidden"
     >
       {/* Badge header: park clearance zone + punch hole */}
-      <div className="flex items-center justify-between bg-ink px-4 py-2.5">
+      <div className="flex items-center justify-between bg-ink px-4 py-2.5 shrink-0">
         <span className="font-mono text-[11px] tracking-wider text-stock/80 uppercase">
-          {job.source} clearance
+          {(SOURCE_LABEL[job.source] ?? job.source)} clearance
         </span>
         <span className="badge-hole" aria-hidden="true" />
       </div>
 
-      <div className="p-5">
+      {/* Body — flex-1 so it stretches and keeps footers aligned across cards */}
+      <div className="flex-1 p-5">
         <h3 className="font-display font-semibold text-lg leading-snug text-inktext group-hover:text-park transition-colors">
           {job.job_title}
         </h3>
@@ -46,8 +52,8 @@ export default function JobCard({ job }: { job: Job }) {
         )}
       </div>
 
-      {/* Tear line + badge ID footer */}
-      <div className="badge-tear flex items-center justify-between px-5 py-2.5 bg-stock/60">
+      {/* Tear line + badge ID footer — mt-auto pins it to the bottom */}
+      <div className="badge-tear mt-auto flex items-center justify-between px-5 py-2.5 bg-stock/60 shrink-0">
         <span className="font-mono text-[11px] text-inktext/50">
           ID·{job.source_job_id}
         </span>

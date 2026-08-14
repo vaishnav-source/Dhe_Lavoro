@@ -3,6 +3,87 @@ import { Link, useParams } from "react-router-dom";
 import { getJob } from "../api/client";
 import type { Job } from "../types";
 
+/** Turn raw scraped posting text into readable sections */
+function FormattedDescription({ text }: { text: string }) {
+  // Split on common section headers that appear in Technopark / Infopark posts
+  const sectionRegex =
+    /(Brief Description|Key Responsibilities|Required Skills|Preferred Skills|Experience|Work Location|Job Description|Responsibilities|Skills|Qualifications|About the Role|About the Company)/gi;
+
+  const parts = text.split(sectionRegex).map((p) => p.trim()).filter(Boolean);
+
+  // If we couldn't detect any sections, fall back to plain pre-line
+  if (parts.length <= 1) {
+    return (
+      <p className="mt-4 text-sm text-inktext/70 whitespace-pre-line leading-relaxed">
+        {text}
+      </p>
+    );
+  }
+
+  const blocks: { title?: string; body: string }[] = [];
+  let i = 0;
+
+  // First chunk before any header is usually company / meta info
+  if (parts[0] && !sectionRegex.test(parts[0])) {
+    blocks.push({ body: parts[0] });
+    i = 1;
+  }
+
+  while (i < parts.length) {
+    const title = parts[i];
+    const body = parts[i + 1] ?? "";
+    blocks.push({ title, body });
+    i += 2;
+  }
+
+  return (
+    <div className="mt-4 space-y-6">
+      {blocks.map((block, idx) => {
+        // Turn bullet-like lines into a real list when possible
+        const lines = block.body
+          .split(/\n+/)
+          .map((l) => l.trim())
+          .filter(Boolean);
+
+        const looksLikeList =
+          lines.length > 1 &&
+          lines.every(
+            (l) =>
+              l.startsWith("-") ||
+              l.startsWith("•") ||
+              l.startsWith("*") ||
+              /^\d+[\.\)]/.test(l) ||
+              l.length < 120
+          );
+
+        return (
+          <div key={idx}>
+            {block.title && (
+              <h4 className="font-mono text-xs uppercase tracking-wide text-park mb-2">
+                {block.title}
+              </h4>
+            )}
+
+            {looksLikeList ? (
+              <ul className="space-y-1.5 text-sm text-inktext/70 leading-relaxed list-disc pl-5">
+                {lines.map((line, li) => (
+                  <li key={li}>
+                    {line.replace(/^[-•*]\s*/, "").replace(/^\d+[\.\)]\s*/, "")}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-inktext/70 whitespace-pre-line leading-relaxed">
+                {block.body}
+              </p>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [job, setJob] = useState<Job | null>(null);
@@ -116,9 +197,7 @@ export default function JobDetailPage() {
                   <summary className="cursor-pointer font-mono text-xs uppercase tracking-wide text-inktext/50 hover:text-park">
                     full posting text
                   </summary>
-                  <p className="mt-4 text-sm text-inktext/70 whitespace-pre-line leading-relaxed">
-                    {job.description}
-                  </p>
+                  <FormattedDescription text={job.description} />
                 </details>
               )}
             </div>
