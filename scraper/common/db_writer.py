@@ -16,7 +16,7 @@ Schema assumed (create this table in Supabase SQL editor first):
         detail_url text,
         description text,                    -- filled in by detail-page backfill
         contact_email text,                  -- filled in by detail-page backfill
-        short_description text,              -- AI-generated summary (Groq), filled in by backfill
+        short_description text,              -- AI-generated summary, filled in by backfill
         status text not null default 'active',   -- 'active' | 'expired'
         expired_at timestamptz,              -- set the moment status flips to 'expired'
         last_seen_at timestamptz not null default now(),
@@ -63,9 +63,7 @@ def upsert_jobs(jobs: List[Dict[str, Any]], client: Client | None = None) -> int
     would touch the same conflict-target row twice in one statement
     ('ON CONFLICT DO UPDATE command cannot affect row a second time'),
     which happens if a source's scrape captures the same job twice in one
-    run (e.g. Technopark's infinite-scroll re-showing a job across two
-    page snapshots if the underlying listing shifted mid-scrape). Last
-    occurrence in the input wins.
+    run. Last occurrence in the input wins.
 
     Also batches requests so one large scrape run doesn't send a single
     giant payload (easier to retry a failed batch without resending
@@ -102,7 +100,6 @@ def upsert_jobs(jobs: List[Dict[str, Any]], client: Client | None = None) -> int
             written += len(rows)
         except Exception as exc:  # noqa: BLE001
             log.error("Batch upsert failed (%s rows): %s", len(rows), exc)
-            # continue with remaining batches rather than aborting the whole run
             continue
 
     log.info("Upserted %s/%s jobs (%s duplicates removed)", written, len(deduped), len(jobs) - len(deduped))
@@ -125,9 +122,7 @@ def mark_job_expired(fingerprint: str, client: Client | None = None) -> bool:
 
 def get_jobs_missing_summary(source: str, limit: int = 500, client: Client | None = None) -> List[Dict[str, Any]]:
     """Return active jobs for a source that already have a description but
-    no short_description yet — for backfilling AI summaries after a run
-    where the summarizer was broken/rate-limited, without re-fetching the
-    detail pages (description + contact_email are already stored)."""
+    no short_description yet."""
     db = client or get_client()
     result = (
         db.table("jobs")
@@ -144,16 +139,10 @@ def get_jobs_missing_summary(source: str, limit: int = 500, client: Client | Non
 
 def get_jobs_missing_detail(source: str, limit: int = 500, client: Client | None = None) -> List[Dict[str, Any]]:
     """Return active jobs for a source that haven't had their detail page
-    fetched yet.
-
-    Filters on description IS NULL rather than contact_email IS NULL —
-    description only stays null if the detail page was never successfully
-    fetched at all. contact_email can legitimately stay null even after a
-    successful fetch (some job postings simply don't list a contact email
-    on the page), and filtering on that would re-fetch the same page on
-    every future backfill run forever, wasting requests on jobs that just
-    don't have one. Capped with a limit so one call can't accidentally
-    try to pull an unbounded number of rows into memory."""
+    fetched yet. Filters on description IS NULL rather than contact_email
+    IS NULL — description only stays null if the detail page was never
+    successfully fetched at all; contact_email can legitimately stay null
+    even after a successful fetch."""
     db = client or get_client()
     result = (
         db.table("jobs")
@@ -175,9 +164,7 @@ def update_job_detail(
     client: Client | None = None,
 ) -> bool:
     """Update one job row with detail-page results (and, if provided, an
-    AI-generated short summary). Returns True if a row was actually
-    updated (lets the caller distinguish 'nothing found on the page' from
-    'the fingerprint didn't match any row')."""
+    AI-generated short summary)."""
     db = client or get_client()
     values = {"description": description, "contact_email": contact_email}
     if short_description is not None:
@@ -195,18 +182,7 @@ def update_job_detail(
 def mark_stale_jobs_expired(source: str, seen_fingerprints: List[str], client: Client | None = None) -> int:
     """After a full scrape run for a source, mark any job still 'active' in
     the DB for that source but NOT present in this run's results as
-    'expired' — covers listings the park removed before their stated
-    deadline (see PRD data-lifecycle note).
-
-    Implementation note: this deliberately does NOT send a giant `NOT IN
-    (...)` filter with hundreds of fingerprints in one request — PostgREST
-    rejects overly long query strings built that way (seen in practice:
-    a 480-item NOT IN caused a 400 "JSON could not be generated" error).
-    Instead it fetches the currently-active rows for this source, computes
-    the stale set in Python, and only sends the (usually much smaller)
-    list of ids that actually need updating — chunked as an extra safety
-    margin in case that list is itself large.
-    """
+    'expired'."""
     db = client or get_client()
 
     if not seen_fingerprints:
@@ -246,10 +222,7 @@ def mark_stale_jobs_expired(source: str, seen_fingerprints: List[str], client: C
 
 def delete_expired_jobs(older_than_days: int = 1, client: Client | None = None) -> int:
     """Permanently deletes jobs that have been 'expired' for more than
-    older_than_days. NOTE: this is a hard delete — data is gone, including
-    for any user's application history referencing that job. Only call
-    this if you're fine with that tradeoff (see PRD data-lifecycle note);
-    otherwise leave expired rows in place, they cost negligible storage."""
+    older_than_days. NOTE: this is a hard delete — data is gone."""
     db = client or get_client()
     cutoff = (datetime.now(timezone.utc) - timedelta(days=older_than_days)).isoformat()
 
@@ -274,3 +247,41 @@ def delete_expired_jobs(older_than_days: int = 1, client: Client | None = None) 
 
     log.info("Deleted %s expired jobs older than %s day(s)", deleted, older_than_days)
     return deleted
+
+
+def reset_descriptions_for_reformat(source: str, client: Client | None = None) -> int:
+    """Nulls out `description` for every active job of a source, WITHOUT
+    touching contact_email or short_description. Used one-time after an
+    improvement to the description-extraction logic (see
+    scraper/common/html_cleaner.py) — resetting description makes those
+    rows reappear in get_jobs_missing_detail()'s queue, so the next
+    backfill_details run re-fetches them with the fixed extraction.
+
+    short_description is deliberately left alone: it's an AI-generated
+    semantic summary of the content, not a rendering of its raw
+    formatting, so it's still valid even though the raw description text
+    it was based on was messier. Re-running the (rate-limited, slower)
+    summary backfill isn't needed just to fix layout."""
+    db = client or get_client()
+
+    rows = (
+        db.table("jobs")
+        .select("id, fingerprint")
+        .eq("source", source)
+        .eq("status", "active")
+        .not_.is_("description", "null")
+        .execute()
+    ).data or []
+
+    if not rows:
+        log.info("No %s jobs with a description to reset", source)
+        return 0
+
+    reset_count = 0
+    for batch in _chunk(rows, BATCH_SIZE):
+        ids = [row["id"] for row in batch]
+        db.table("jobs").update({"description": None}).in_("id", ids).execute()
+        reset_count += len(ids)
+
+    log.info("Reset description for %s %s jobs — will re-fetch on next backfill run", reset_count, source)
+    return reset_count

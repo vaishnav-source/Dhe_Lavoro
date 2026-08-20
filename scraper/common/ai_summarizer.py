@@ -14,7 +14,7 @@ import time
 import requests
 
 from scraper.common.config import (
-    GROQ_API_KEY, GROQ_MODEL, GROQ_API_URL,
+    GROQ_API_KEY, GROQ_MODEL, GROQ_API_URL, GROQ_MAX_TOKENS,
     NVIDIA_API_KEY, NVIDIA_MODEL, NVIDIA_API_URL,
     OPENROUTER_API_KEY, OPENROUTER_MODEL, OPENROUTER_API_URL,
     HF_API_KEY, HF_MODEL, HF_API_URL,
@@ -42,7 +42,14 @@ def _call_groq(description: str) -> str:
             {"role": "user", "content": description[:AI_MAX_INPUT_CHARS]},
         ],
         "temperature": 0.3,
-        "max_tokens": 200,
+        "max_tokens": GROQ_MAX_TOKENS,
+        # gpt-oss-20b/120b are reasoning models — these two params keep
+        # reasoning-token spend low and force the final answer into
+        # message.content rather than a separate reasoning field. Other
+        # (non-reasoning) Groq models silently ignore unknown params, so
+        # this is safe to always send regardless of which model is active.
+        "reasoning_effort": "low",
+        "include_reasoning": False,
     }
     headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
     resp = requests.post(GROQ_API_URL, json=payload, headers=headers, timeout=AI_TIMEOUT_SECONDS)
@@ -63,7 +70,7 @@ def _call_openrouter(description: str) -> str:
             {"role": "user", "content": description[:AI_MAX_INPUT_CHARS]},
         ],
         "temperature": 0.3,
-        "max_tokens": 200,
+        "max_tokens": 400,
     }
     headers = {"Authorization": f"Bearer {OPENROUTER_API_KEY}", "Content-Type": "application/json"}
     resp = requests.post(OPENROUTER_API_URL, json=payload, headers=headers, timeout=AI_TIMEOUT_SECONDS)
@@ -104,35 +111,18 @@ def _call_huggingface(description: str) -> str:
     resp = requests.post(HF_API_URL, json=payload, headers=headers, timeout=AI_TIMEOUT_SECONDS)
     resp.raise_for_status()
     data = resp.json()
-    # HF inference API can return a list of generations or a dict depending on model/task
     if isinstance(data, list) and data and "generated_text" in data[0]:
         return data[0]["generated_text"].strip()
     raise RuntimeError(f"Unexpected Hugging Face response shape: {data}")
 
 
-# Ordered fallback chain — name kept alongside the function purely for logging.
-# NVIDIA NIM replaces OpenRouter here: OpenRouter's free-tier model IDs kept
-# getting delisted (twice) and even the "openrouter/free" auto-router
-# returned empty content unreliably. NVIDIA NIM's free tier (~40 req/min,
-# no credit card, OpenAI-compatible) has been steadier. Hugging Face stays
-# out for the same reason as before — _call_openrouter/_call_huggingface
-# are left defined above in case either is worth re-adding later.
 PROVIDERS: List[Tuple[str, Callable[[str], str]]] = [
     ("groq", _call_groq),
     ("nvidia", _call_nvidia),
+    ("openrouter", _call_openrouter),
 ]
 
-# Sticky cursor: once a provider fails (rate limit, missing key, etc), we
-# start subsequent calls from the next provider instead of re-trying the
-# exhausted one every single job. Within one run, once Groq is
-# rate-limited at job 15, jobs 16+ go straight to OpenRouter instead of
-# wasting a failing call on Groq each time.
 _provider_start_index = 0
-
-# If every provider is exhausted, we don't stay stuck for the rest of a
-# long batch run (rate limits are often per-minute, not permanent) — after
-# this many seconds, the next call resets the cursor to 0 and gives every
-# provider another chance.
 _last_exhausted_at: Optional[float] = None
 COOLDOWN_SECONDS = 60
 
@@ -154,6 +144,13 @@ def summarize_job_description(description: Optional[str]) -> Optional[str]:
         if time.time() - _last_exhausted_at >= COOLDOWN_SECONDS:
             log.info("Cooldown elapsed — retrying providers from the top")
             _provider_start_index = 0
+
+    if _provider_start_index >= len(PROVIDERS):
+        # Still within the cooldown window — nothing to try this call.
+        # Deliberately return here WITHOUT touching _last_exhausted_at:
+        # updating it on a no-op call would keep pushing the cooldown
+        # deadline forward forever, so it could never actually elapse.
+        return None
 
     for i in range(_provider_start_index, len(PROVIDERS)):
         name, call_fn = PROVIDERS[i]

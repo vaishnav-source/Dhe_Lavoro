@@ -3,13 +3,13 @@
   display: inline-flex;
   align-items: center;
   padding: 10px 28px;
-  background: #f0e644;
+  background: #eff3ec;
   font-size: 14px;
   font-weight: 500;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   color: #181818;
   cursor: pointer;
-  border: 1px solid #383838;
+  border: 1px solid #d4ddd0;
   border-radius: 50px;
   text-decoration: none;
   filter: drop-shadow(2px 2px 3px rgba(0, 0, 0, 0.15));
@@ -100,14 +100,12 @@
 
 /* Background hover */
 .back-btn:hover {
-  border: 1px solid #f3b182;
+  border: 1px solid #c5d0c0;
   background: linear-gradient(
     85deg,
-    #fec195,
-    #fcc196,
-    #fabd92,
-    #fac097,
-    #fac39c
+    #f5f8f4,
+    #eff3ec,
+    #e2e9df
   );
   animation: wind 2s ease-in-out infinite;
 }
@@ -122,8 +120,8 @@
 .back-btn .icon-1 {
   position: absolute;
   top: 0px;
-  right: -2px;
-  width: 22px;
+  right: -1.6px;
+  width: 21.5px;
   transform-origin: 0 0;
   transform: rotate(10deg);
   transition: all 0.5s ease-in-out;
@@ -191,7 +189,7 @@
 }
 
 .back-btn .fil0 {
-  fill: #1a1a1a;
+  fill: #3d5a45;
 }
 
 /* ==========================================================

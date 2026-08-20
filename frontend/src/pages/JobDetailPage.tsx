@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getJob } from "../api/client";
 import type { Job } from "../types";
+import { formatJobDescription } from "../utils/formatDescription";
 import HandDrawnFilters from "../components/HandDrawnFilters";
 import "../components/HandDrawnButton.css";
 import LiquidFilters from "../components/LiquidFilters";
@@ -42,9 +43,8 @@ export default function JobDetailPage() {
       <LiquidFilters />
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-        {/* ===== Back Button ===== */}
+        {/* ===== Back Button (kept exactly as is) ===== */}
         <Link to="/" className="back-btn">
-          {/* Japanese text */}
           <span className="jp-text">
             <span>ク</span>
             <span>エ</span>
@@ -55,7 +55,6 @@ export default function JobDetailPage() {
             <span>る</span>
           </span>
 
-          {/* English text */}
           <span className="en-text">
             <span>R</span>
             <span>e</span>
@@ -74,7 +73,7 @@ export default function JobDetailPage() {
             <span>t</span>
           </span>
 
-          {/* icon-1 (right leaf) */}
+          {/* icon-1 */}
           <div className="icon-1">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -98,7 +97,7 @@ export default function JobDetailPage() {
             </svg>
           </div>
 
-          {/* icon-2 (middle leaf) */}
+          {/* icon-2 */}
           <div className="icon-2">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -122,7 +121,7 @@ export default function JobDetailPage() {
             </svg>
           </div>
 
-          {/* icon-3 (left leaf) */}
+          {/* icon-3 */}
           <div className="icon-3">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -197,11 +196,14 @@ export default function JobDetailPage() {
               )}
 
               <div className="mt-8 flex flex-wrap gap-3 items-center">
+                {/* Fancy hand-drawn apply button (kept) */}
                 {job.contact_email && (
                   <a
-                    href={`mailto:${job.contact_email}?subject=Application: ${encodeURIComponent(
-                      job.job_title
-                    )}`}
+                    href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
+                      job.contact_email
+                    )}&su=${encodeURIComponent(`Application: ${job.job_title}`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="hand-btn"
                   >
                     <svg
@@ -224,6 +226,7 @@ export default function JobDetailPage() {
                   </a>
                 )}
 
+                {/* Fancy liquid original post button (kept) */}
                 {job.detail_url && (
                   <a
                     href={job.detail_url}
@@ -243,14 +246,39 @@ export default function JobDetailPage() {
                 )}
               </div>
 
+              {/* Improved description formatting (from second code) */}
               {job.description && (
                 <details className="mt-8 badge-tear pt-6">
                   <summary className="cursor-pointer font-mono text-xs uppercase tracking-wide text-inktext/50 hover:text-park">
                     full posting text
                   </summary>
-                  <p className="mt-4 text-sm text-inktext/70 whitespace-pre-line leading-relaxed">
-                    {job.description}
-                  </p>
+                  <div className="mt-4 space-y-5">
+                    {formatJobDescription(job.description).map((section, i) => (
+                      <div key={i}>
+                        {section.heading && (
+                          <h4 className="font-display font-semibold text-sm text-inktext mb-1.5">
+                            {section.heading}
+                          </h4>
+                        )}
+                        {section.items.length > 1 ? (
+                          <ul className="list-disc list-outside pl-5 space-y-1.5">
+                            {section.items.map((item, j) => (
+                              <li
+                                key={j}
+                                className="text-sm text-inktext/70 leading-relaxed"
+                              >
+                                {item}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-sm text-inktext/70 leading-relaxed">
+                            {section.items[0]}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </details>
               )}
             </div>
