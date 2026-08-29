@@ -40,6 +40,14 @@ def scrape_all_pages(max_pages: int = TECHNOPARK_MAX_PAGES, headless: bool = Tru
     only a genuine browser engine passes. Playwright drives real Chromium
     and simply listens for the page's own XHR responses as it scrolls,
     rather than trying to replicate the API call by hand.
+
+    NOTE on wait_until="domcontentloaded" (not "networkidle"): Technopark's
+    page has persistent background requests (Google Analytics beacons
+    etc.) that never go fully idle, so "networkidle" reliably timed out
+    after the full 30s wait, failing the entire scrape run. DOM-ready is
+    all we actually need — the page's own JS then fires the job-listing
+    XHR asynchronously, which our response handler captures regardless of
+    whether the goto() wait strategy is watching for it.
     """
     seen_pages: Set[int] = set()
     raw_payloads_by_page: Dict[int, Any] = {}
@@ -66,7 +74,10 @@ def scrape_all_pages(max_pages: int = TECHNOPARK_MAX_PAGES, headless: bool = Tru
         page = browser.new_page()
         page.on("response", handle_response)
 
-        page.goto(TECHNOPARK_LANDING_URL, wait_until="networkidle")
+        page.goto(TECHNOPARK_LANDING_URL, wait_until="domcontentloaded", timeout=60000)
+        # Give the page's own JS a moment to fire its initial job-listing
+        # XHR (page=1) before we start scrolling for subsequent pages.
+        page.wait_for_timeout(3000)
 
         stagnant_scrolls = 0
         max_stagnant_scrolls = 3  # stop once a few scrolls in a row load nothing new

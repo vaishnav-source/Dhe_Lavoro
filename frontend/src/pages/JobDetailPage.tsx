@@ -199,9 +199,9 @@ export default function JobDetailPage() {
                 {/* Fancy hand-drawn apply button (kept) */}
                 {job.contact_email && (
                   <a
-                    href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
-                      job.contact_email
-                    )}&su=${encodeURIComponent(`Application: ${job.job_title}`)}`}
+                    href={`https://mail.google.com/mail/#inbox?compose=${encodeURIComponent(
+    `to=${job.contact_email}&subject=Application: ${job.job_title}`
+  )}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="hand-btn"
