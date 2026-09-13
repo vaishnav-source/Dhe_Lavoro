@@ -12,6 +12,7 @@ from scraper.common.db_writer import get_jobs_missing_detail, update_job_detail,
 from scraper.common.rate_limiter import polite_delay
 from scraper.common.logger import get_logger
 from scraper.common.ai_summarizer import summarize_job_description
+from scraper.common.experience_extractor import extract_experience
 from scraper.technopark.detail_scraper import fetch_job_detail
 
 log = get_logger(__name__)
@@ -44,11 +45,14 @@ def run_backfill(limit: int = 500) -> dict:
             continue
 
         short_description = summarize_job_description(detail["description"])
+        experience_min, experience_max = extract_experience(detail["description"])
         update_job_detail(
             fingerprint=job["fingerprint"],
             description=detail["description"],
             contact_email=detail["contact_email"],
             short_description=short_description,
+            experience_min=experience_min,
+            experience_max=experience_max,
         )
         updated += 1
         polite_delay()

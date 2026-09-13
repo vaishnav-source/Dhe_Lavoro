@@ -8,6 +8,8 @@ export interface ListJobsParams {
   source?: string;
   page?: number;
   limit?: number;
+  expMin?: number;
+  expMax?: number;
 }
 
 export async function listJobs(params: ListJobsParams = {}): Promise<JobListResponse> {
@@ -16,7 +18,9 @@ export async function listJobs(params: ListJobsParams = {}): Promise<JobListResp
   if (params.source) query.set("source", params.source);
   if (params.page) query.set("page", String(params.page));
   if (params.limit) query.set("limit", String(params.limit));
-  
+  if (params.expMin !== undefined) query.set("exp_min", String(params.expMin));
+  if (params.expMax !== undefined) query.set("exp_max", String(params.expMax));
+
   // Cache-buster parameter guarantees a fresh request even if browser cache ignores headers
   query.set("_t", String(Date.now()));
 
@@ -27,7 +31,7 @@ export async function listJobs(params: ListJobsParams = {}): Promise<JobListResp
       "Cache-Control": "no-cache",
     },
   });
-  
+
   if (!res.ok) {
     throw new Error(`Failed to fetch jobs: ${res.status}`);
   }

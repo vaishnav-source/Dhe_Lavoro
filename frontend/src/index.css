@@ -2,13 +2,58 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: "Comico-Regular";
+  src: url("/fonts/comico/Comico-Regular.woff2") format("woff2"),
+       url("/fonts/comico/Comico-Regular.woff") format("woff"),
+       url("/fonts/comico/Comico-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Kalam";
+  src: url("/fonts/kalam/Kalam-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Kalam";
+  src: url("/fonts/kalam/Kalam-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Kalam";
+  src: url("/fonts/kalam/Kalam-Light.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
 @layer base {
+  html,
+  body,
+  #root {
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
+  }
+
   body {
     @apply bg-stock text-inktext font-body antialiased;
+    overflow-x: hidden;   /* important */
   }
+
   ::selection {
     @apply bg-gold/30;
   }
+
   *:focus-visible {
     outline: 2px solid theme('colors.park.DEFAULT');
     outline-offset: 2px;

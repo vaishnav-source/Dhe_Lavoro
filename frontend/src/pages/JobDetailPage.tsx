@@ -9,11 +9,63 @@ import LiquidFilters from "../components/LiquidFilters";
 import "../components/LiquidButton.css";
 import "../components/BackButton.css";
 
+function JobDetailSkeleton() {
+  return (
+    <div className="mt-6 rounded-xl border border-hairline bg-surface overflow-hidden animate-pulse">
+      {/* Header bar */}
+      <div className="bg-ink px-6 py-4 flex items-center justify-between">
+        <div className="h-3 w-40 bg-stock/20 rounded" />
+        <div className="w-3.5 h-3.5 rounded-full border border-stock/30" />
+      </div>
+
+      {/* Body */}
+      <div className="p-6 sm:p-8 space-y-5">
+        {/* Title */}
+        <div className="space-y-2">
+          <div className="h-7 w-4/5 bg-inktext/10 rounded" />
+          <div className="h-4 w-1/3 bg-inktext/10 rounded" />
+        </div>
+
+        {/* Meta (posted / closes) */}
+        <div className="grid grid-cols-2 gap-4 pt-2">
+          <div className="space-y-1.5">
+            <div className="h-3 w-12 bg-inktext/10 rounded" />
+            <div className="h-4 w-20 bg-inktext/10 rounded" />
+          </div>
+          <div className="space-y-1.5">
+            <div className="h-3 w-12 bg-inktext/10 rounded" />
+            <div className="h-4 w-20 bg-inktext/10 rounded" />
+          </div>
+        </div>
+
+        {/* Short description */}
+        <div className="space-y-2 pt-2">
+          <div className="h-3.5 w-full bg-inktext/10 rounded" />
+          <div className="h-3.5 w-full bg-inktext/10 rounded" />
+          <div className="h-3.5 w-3/4 bg-inktext/10 rounded" />
+        </div>
+
+        {/* Buttons */}
+        <div className="flex gap-3 pt-4">
+          <div className="h-10 w-36 bg-inktext/10 rounded-lg" />
+          <div className="h-10 w-32 bg-inktext/10 rounded-lg" />
+        </div>
+
+        {/* Full posting text link */}
+        <div className="pt-4">
+          <div className="h-3 w-32 bg-inktext/10 rounded" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showFullText, setShowFullText] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -82,7 +134,7 @@ export default function JobDetailPage() {
               style={{
                 shapeRendering: "geometricPrecision",
                 textRendering: "geometricPrecision",
-                imageRendering: "optimizeQuality",
+                imageRendering: "optimizeQuality" as React.CSSProperties["imageRendering"],
                 fillRule: "evenodd",
                 clipRule: "evenodd",
               }}
@@ -106,7 +158,7 @@ export default function JobDetailPage() {
               style={{
                 shapeRendering: "geometricPrecision",
                 textRendering: "geometricPrecision",
-                imageRendering: "optimizeQuality",
+                imageRendering: "optimizeQuality" as React.CSSProperties["imageRendering"],
                 fillRule: "evenodd",
                 clipRule: "evenodd",
               }}
@@ -130,7 +182,7 @@ export default function JobDetailPage() {
               style={{
                 shapeRendering: "geometricPrecision",
                 textRendering: "geometricPrecision",
-                imageRendering: "optimizeQuality",
+                imageRendering: "optimizeQuality" as React.CSSProperties["imageRendering"],
                 fillRule: "evenodd",
                 clipRule: "evenodd",
               }}
@@ -139,18 +191,15 @@ export default function JobDetailPage() {
               <g id="Layer_x0020_1">
                 <path
                   className="fil0"
-                  d="M19.14 6.58c0.09,0.1 -0.02,0.03 0.17,0.15 0.04,0.03 0.19,0.09 0.27,0.13l0.16 0.02c0.12,0.14 0.02,0.06 0.22,0.18 0.63,0.37 1.81,0.52 2.51,0.53 0.42,-0.26 0.61,-1.58 0.55,-2.27 -0.11,-1.17 -1.02,-3.42 -2.17,-3.76 -0.84,-0.25 -1.19,0.02 -1.4,0.7 -0.03,0.1 -0.05,0.19 -0.09,0.28l-0.18 0.25c-0.18,-0.36 -0.77,-0.97 -1.2,-1.18 -0.64,-0.31 -0.36,-0.26 -0.84,-1.59l-0.75 0c0.2,0.63 0.44,1.27 0.61,1.92 0.17,0.64 0.47,1.46 0.58,2.05 -0.21,0.36 -0.43,0.5 -0.31,1.1 0.11,0.51 0.35,0.71 0.76,0.9 0.13,0.31 0.36,1.33 0.39,1.78 -0.68,0.24 -1.38,0.85 -1.62,1.43 -0.45,-0.47 -0.29,-1.59 -1.59,-1.22 -0.8,0.22 -1.09,0.8 -1.45,1.52 -0.58,1.18 -0.96,2.15 -0.6,3.58 0.04,0.17 0.13,0.4 0.19,0.55 0.11,0.29 0.09,0.34 0.35,0.44 1.74,-0.01 2.96,-0.82 4.13,-1.55 0.22,-0.13 0.65,-0.39 0.79,-0.62 0.74,-1.2 -0.74,-2.14 -1.7,-2.43 -0.01,-0.51 1.07,-0.87 1.7,-0.82 0.21,1.74 0.56,3.5 0.61,5.33 0.05,2.05 0.01,3.68 -0.08,5.71 -1.2,0.52 -0.99,0.65 -1.77,1.46 -0.39,-0.45 -0.22,-1.6 -1.59,-1.18 -0.79,0.24 -0.91,0.63 -1.42,1.55 -0.78,1.41 -0.95,2.66 -0.36,4.15 0.14,0.35 0.06,0.36 0.36,0.37 0.78,-0 1.47,-0.18 2.09,-0.43 0.51,-0.2 1.26,-0.76 1.69,-0.86 -0.18,0.3 -0.34,0.91 -0.48,1.25l-1.54 3.5c-1.75,0.08 -1.26,0.29 -2.27,0.59 0.1,-1.15 0.1,-1.69 -1.1,-1.78 -0.7,-0.05 -1.5,0.65 -1.91,0.96 -1.04,0.82 -1.93,1.81 -1.94,3.77 0.09,0.22 -0.03,0.09 0.18,0.11 0.24,0.36 1.4,0.49 1.94,0.58l0.19 -0.01 0.71 -0.01 0.08 -0.02 1.74 -0.17c0.25,0.04 0.03,-0.07 0.19,0.09l-2.62 4.74c-0.28,0.51 -0.56,1.2 -0.86,1.61 -0.44,-0.02 -0.69,-0.14 -1.18,-0.08 -0.38,0.04 -0.72,0.17 -1.08,0.22 0.1,-0.53 0.78,-1.5 -0.62,-1.96 -0.79,-0.26 -1.74,0.32 -2.33,0.6 -2.12,1.02 -2.81,3.28 -2.36,3.38 0.01,0.01 0.03,0.02 0.03,0.04l0.11 0.1c0.42,0.34 1.16,0.64 1.66,0.79 0.65,0.19 1.73,0.31 2.43,0.38 3,0.28 1.16,-2.8 1.09,-3.14 0.86,0.12 1.3,-0.05 1.81,0.56 -0.08,0.35 -0.53,1.2 -0.71,1.6 -0.74,1.61 -1.24,3.24 -1.73,4.96 -0.92,0.11 -1.11,0.44 -1.77,0.69 0.01,-1.08 0.1,-1.68 -1.14,-1.71 -0.55,-0.01 -0.8,0.17 -1.11,0.41 -1.43,1.08 -2.52,2.24 -2.53,4.15 -0,0.62 0.11,0.48 0.22,0.54 0.63,0.38 1.79,0.44 2.67,0.35 0.47,-0.05 0.97,-0.11 1.43,-0.2l0.98 -0.22c0.38,-0.08 0.14,-0.15 0.26,0.06 -0.08,0.78 -0.66,2.6 -0.56,3.29 -0.13,0.14 -0.07,0.08 -0.17,0.29 -0.06,0.13 -0.08,0.18 -0.12,0.33 -0.07,0.3 -0.02,0.6 -0.03,0.92 -0.09,0.94 -0.17,0.52 -0.78,0.94 -0.32,0.22 -0.57,0.55 -0.86,0.82 -0.29,-0.69 -0.22,-1.44 -1.39,-1.13 -0.93,0.25 -1.93,2.19 -2.03,3.16 -0.06,0.56 0.02,1.84 0.39,2.08 2,0.02 2.64,-0.6 4.08,-1.25l-0.01 0.28c-0.06,0.58 -0.22,2.09 -0.14,2.62 -0.44,0.37 -0.46,1.03 -0.12,1.49 -0.08,3.97 0.16,2.73 -0.77,3.57 -0.24,0.21 -0.37,0.4 -0.62,0.62 -0.36,-0.53 -0.09,-1.43 -1.37,-1.13 -0.98,0.23 -1.92,2.22 -2.06,3.14 -0.07,0.47 -0.07,1.79 0.41,2.09 0.86,0.04 1.94,-0.12 2.51,-0.52l0.16 -0.08c0.6,-0.17 1.39,-0.67 1.84,-0.94 0.12,0.18 0.04,0.07 0.14,0.1 -0.18,0.38 -0.31,0.07 -0.71,0.58 -0.67,0.86 0.33,1.72 0.89,2.31 0.6,0.64 1.71,1.63 2.94,1.88 0.38,-0.11 0.92,-1.2 1.04,-1.69 0.21,-0.86 0.15,-1.53 -0.05,-2.41 -0.22,-0.94 -0.24,-1.38 -1.01,-1.81 -0.93,-0.52 -1.19,0.28 -1.59,0.76 -0.21,-0.33 -0.33,-0.79 -0.58,-1.12 -0.48,-0.62 -0.48,-0.13 -0.5,-1.22 -0.02,-1.09 0.05,-2.25 0.01,-3.32 0.37,0.22 0.89,0.86 1.37,1.21 0.51,0.37 1.05,0.65 1.76,0.82 0.32,-0.02 0.92,-1.21 1.04,-1.68 0.22,-0.87 0.15,-1.53 -0.04,-2.41 -0.19,-0.86 -0.3,-1.41 -0.96,-1.79 -1.06,-0.6 -1.26,0.38 -1.71,0.74 -0.22,-0.8 -0.65,-1.34 -1.19,-1.71l0.5 -4.35 0.38 0.28c0.23,0.25 0.6,0.67 0.87,0.82 0.07,0.1 0.05,0.1 0.19,0.21 0.18,0.23 0.66,0.57 0.92,0.6 0.1,0.13 -0.01,0.03 0.16,0.16 0.08,0.06 0.1,0.07 0.18,0.11 0.14,0.07 0.26,0.1 0.44,0.15l0.45 0.17c0.35,0.08 0.75,-0.74 0.91,-1.05 0.21,-0.4 0.41,-1.07 0.43,-1.57 -0,-0.28 0.04,-0.67 -0.1,-0.85l0.03 -0.17c-0,-0.04 -0.01,-0.13 -0.01,-0.15 -0.05,-0.13 -0.03,-0.1 -0.09,-0.17 0.06,-0.51 -0.25,-1.75 -0.94,-2.22 -1.11,-0.74 -1.37,0.09 -1.86,0.69l-0.12 -0.2c-0.28,-0.56 -0.41,-1.06 -1,-1.45 0.04,-1.21 1.29,-5.03 1.31,-5.65 0.07,0.06 0.05,0.04 0.12,0.13 0.63,0.83 0.41,0.6 1.22,1.38 0.76,0.74 1.67,1.73 2.95,1.92 0.28,0.13 0.55,-0.41 0.69,-0.64 0.21,-0.34 0.36,-0.64 0.47,-1.02 0.36,-1.24 0.14,-3.92 -1.03,-4.6 -1.23,-0.72 -1.67,0.89 -1.75,0.72 -0.01,-0.01 -0.03,0.02 -0.04,0.03 -0.19,-0.33 -0.3,-0.68 -0.49,-1 -0.22,-0.38 -0.47,-0.51 -0.68,-0.79 0.39,-1.04 1.05,-2.29 1.59,-3.3 0.57,-1.06 1.2,-2.15 1.7,-3.17 1.43,-0.02 1.51,0.55 1.8,0.6 -0.1,0.19 -0.02,0.07 -0.16,0.2 -0.01,0.01 -0.21,0.13 -0.23,0.15 -0.8,0.47 -1.8,0.96 -1.37,2.09 0.14,0.37 0.42,0.53 0.75,0.73 1.23,0.73 2.46,1.53 4.32,1.53 0.28,-0.08 0.25,-0.15 0.35,-0.44 0.22,-0.63 0.33,-1.22 0.26,-1.93 -0.11,-1.05 -1.06,-3.33 -2.21,-3.65 -1.31,-0.37 -1.17,0.6 -1.56,1.21l-0.2 -0.19c-0.84,-0.96 -0.61,-0.56 -1.27,-1.09 0.16,-0.47 0.7,-1.32 0.98,-1.82 1.05,-1.91 1.94,-3.59 2.84,-5.61 0.73,0.01 1.23,0.31 1.57,0.68 -0.26,0.25 -1.37,0.7 -1.67,1.19 -0.51,0.8 -0.07,1.45 0.63,1.87 1.15,0.7 2.56,1.58 4.34,1.55 0.33,-0.09 0.46,-0.67 0.52,-0.98 0.28,-1.4 -0.01,-2.34 -0.66,-3.5 -0.49,-0.87 -0.67,-1.3 -1.44,-1.54 -1.15,-0.36 -1.27,0.44 -1.56,1.23 -0.65,-0.55 0.03,-0.23 -1.38,-1.25 0.22,-0.6 1.08,-2.59 1.06,-3.14 0.38,-0.35 0.52,-0.78 0.43,-1.4 0.22,-0.75 0.67,-4.16 0.53,-5 0.32,0.09 0.75,0.4 1.06,0.57 0.35,0.2 0.71,0.39 1.06,0.57 0.73,0.38 1.61,0.62 2.65,0.61 0.58,-0.21 0.64,-1.82 0.61,-2.32 -0.04,-0.79 -0.45,-1.64 -0.77,-2.19 -0.39,-0.68 -0.64,-1.3 -1.45,-1.52 -1.33,-0.36 -1.16,0.63 -1.55,1.24 -0.67,-0.66 -0.61,-0.87 -1.64,-1.37 -0.06,-2.55 -0.87,-5.97 -0.9,-6.74l0.15 -0.03 0.01 -0.03z"
+                  d="M19.14 6.58c0.09,0.1 -0.02,0.03 0.17,0.15 0.04,0.03 0.19,0.09 0.27,0.13l0.16 0.02c0.12,0.14 0.02,0.06 0.22,0.18 0.63,0.37 1.81,0.52 2.51,0.53 0.42,-0.26 0.61,-1.58 0.55,-2.27 -0.11,-1.17 -1.02,-3.42 -2.17,-3.76 -0.84,-0.25 -1.19,0.02 -1.4,0.7 -0.03,0.1 -0.05,0.19 -0.09,0.28l-0.18 0.25c-0.18,-0.36 -0.77,-0.97 -1.2,-1.18 -0.64,-0.31 -0.36,-0.26 -0.84,-1.59l-0.75 0c0.2,0.63 0.44,1.27 0.61,1.92 0.17,0.64 0.47,1.46 0.58,2.05 -0.21,0.36 -0.43,0.5 -0.31,1.1 0.11,0.51 0.35,0.71 0.76,0.9 0.13,0.31 0.36,1.33 0.39,1.78 -0.68,0.24 -1.38,0.85 -1.62,1.43 -0.45,-0.47 -0.29,-1.59 -1.59,-1.22 -0.8,0.22 -1.09,0.8 -1.45,1.52 -0.58,1.18 -0.96,2.15 -0.6,3.58 0.04,0.17 0.13,0.4 0.19,0.55 0.11,0.29 0.09,0.34 0.35,0.44 1.74,-0.01 2.96,-0.82 4.13,-1.55 0.22,-0.13 0.65,-0.39 0.79,-0.62 0.74,-1.2 -0.74,-2.14 -1.7,-2.43 -0.01,-0.51 1.07,-0.87 1.7,-0.82 0.21,1.74 0.56,3.5 0.61,5.33 0.05,2.05 0.01,3.68 -0.08,5.71 -1.2,0.52 -0.99,0.65 -1.77,1.46 -0.39,-0.45 -0.22,-1.6 -1.59,-1.18 -0.79,0.24 -0.91,0.63 -1.42,1.55 -0.78,1.41 -0.95,2.66 -0.36,4.15 0.14,0.35 0.06,0.36 0.36,0.37 0.78,-0 1.47,-0.18 2.09,-0.43 0.51,-0.2 1.26,-0.76 1.69,-0.86 -0.18,0.3 -0.34,0.91 -0.48,1.25l-1.54 3.5c-1.75,0.08 -1.26,0.29 -2.27,0.59 0.1,-1.15 0.1,-1.69 -1.1,-1.78 -0.7,-0.05 -1.5,0.65 -1.91,0.96 -1.04,0.82 -1.93,1.81 -1.94,3.77 0.09,0.22 -0.03,0.09 0.18,0.11 0.24,0.36 1.4,0.49 1.94,0.58l0.19 -0.01 0.71 -0.01 0.08 -0.02 1.74 -0.17c0.25,0.04 0.03,-0.07 0.19,0.09l-2.62 4.74c-0.28,0.51 -0.56,1.2 -0.86,1.61 -0.44,-0.02 -0.69,-0.14 -1.18,-0.08 -0.38,0.04 -0.72,0.17 -1.08,0.22 0.1,-0.53 0.78,-1.5 -0.62,-1.96 -0.79,-0.26 -1.74,0.32 -2.33,0.6 -2.12,1.02 -2.81,3.28 -2.36,3.38 0.01,0.01 0.03,0.02 0.03,0.04l0.11 0.1c0.42,0.34 1.16,0.64 1.66,0.79 0.65,0.19 1.73,0.31 2.43,0.38 3,0.28 1.16,-2.8 1.09,-3.14 0.86,0.12 1.3,-0.05 1.81,0.56 -0.08,0.35 -0.53,1.2 -0.71,1.6 -0.74,1.61 -1.24,3.24 -1.73,4.96 -0.92,0.11 -1.11,0.44 -1.77,0.69 0.01,-1.08 0.1,-1.68 -1.14,-1.71 -0.55,-0.01 -0.8,0.17 -1.11,0.41 -1.43,1.08 -2.52,2.24 -2.53,4.15 -0,0.62 0.11,0.48 0.22,0.54 0.63,0.38 1.79,0.44 2.67,0.35 0.47,-0.05 0.97,-0.11 1.43,-0.2l0.98 -0.22c0.38,-0.08 0.14,-0.15 0.26,0.06 -0.08,0.78 -0.66,2.6 -0.56,3.29 -0.13,0.14 -0.07,0.08 -0.17,0.29 -0.06,0.13 -0.08,0.18 -0.12,0.33 -0.07,0.3 -0.02,0.6 -0.03,0.92 -0.09,0.94 -0.17,0.52 -0.78,0.94 -0.32,0.22 -0.57,0.55 -0.86,0.82 -0.29,-0.69 -0.22,-1.44 -1.39,-1.13 -0.93,0.25 -1.93,2.19 -2.03,3.16 -0.06,0.56 0.02,1.84 0.39,2.08 2,0.02 2.64,-0.6 4.08,-1.25l-0.01 0.28c-0.06,0.58 -0.22,2.09 -0.14,2.62 -0.44,0.37 -0.46,1.03 -0.12,1.49 -0.08,3.97 0.16,2.73 -0.77,3.57 -0.24,0.21 -0.37,0.4 -0.62,0.62 -0.36,-0.53 -0.09,-1.43 -1.37,-1.13 -0.98,0.23 -1.92,2.22 -2.06,3.14 -0.07,0.47 -0.07,1.79 0.41,2.09 0.86,0.04 1.94,-0.12 2.51,-0.52l0.16 -0.08c0.6,-0.17 1.39,-0.67 1.84,-0.94 0.12,0.18 0.04,0.07 0.14,0.1 -0.18,0.38 -0.31,0.07 -0.71,0.58 -0.67,0.86 0.33,1.72 0.89,2.31 0.6,0.64 1.71,1.63 2.94,1.88 0.38,-0.11 0.92,-1.2 1.04,-1.69 0.21,-0.86 0.15,-1.53 -0.05,-2.41 -0.22,-0.94 -0.24,-1.38 -1.01,-1.81 -0.93,-0.52 -1.19,0.28 -1.59,0.76 -0.21,-0.33 -0.33,-0.79 -0.58,-1.12 -0.48,-0.62 -0.48,-0.13 -0.5,-1.22 -0.02,-1.09 0.05,-2.25 0.01,-3.32 0.37,0.22 0.89,0.86 1.37,1.21 0.51,0.37 1.05,0.65 1.76,0.82 0.32,-0.02 0.92,-1.21 1.04,-1.68 0.22,-0.87 0.15,-1.53 -0.04,-2.41 -0.19,-0.86 -0.3,-1.41 -0.96,-1.79 -1.06,-0.6 -1.26,0.38 -1.71,0.74 -0.22,-0.8 -0.65,-1.34 -1.19,-1.71l0.5 -4.35 0.38 0.28c0.23,0.25 0.6,0.67 0.87,0.82 0.07,0.1 0.05,0.1 0.19,0.21 0.18,0.23 0.66,0.57 0.92,0.6 0.1,0.13 -0.01,0.03 0.16,0.16 0.08,0.06 0.1,0.07 0.18,0.11 0.14,0.07 0.26,0.1 0.44,0.15l0.45 0.17c0.35,0.08 0.75,-0.74 0.91,-1.05 0.21,-0.4 0.41,-1.07 0.43,-1.57 -0,-0.28 0.04,-0.67 -0.1,-0.85l0.03 -0.17c-0,-0.04 -0.01,-0.13 -0.01,-0.15 -0.05,-0.13 -0.03,-0.1 -0.09,-0.17 0.06,-0.51 -0.25,-1.75 -0.94,-2.22 -1.11,-0.74 -1.37,0.09 -1.86,0.69l-0.12 -0.2c-0.28,-0.56 -0.41,-1.06 -1,-1.45 0.04,-1.21 1.29,-5.03 1.31,-5.65 0.07,0.06 0.05,0.04 0.12,0.13 0.63,0.83 0.41,0.6 1.22,1.38 0.76,0.74 1.67,1.73 2.95,1.92 0.28,0.13 0.55,-0.41 0.69,-0.64 0.21,-0.34 0.36,-0.64 0.47,-1.02 0.36,-1.24 0.14,-3.92 -1.03,-4.6 -1.23,-0.72 -1.67,0.89 -1.75,0.72 -0.01,-0.01 -0.03,0.02 -0.04,0.03 -0.19,-0.33 -0.3,-0.68 -0.49,-1 -0.22,-0.38 -0.47,-0.51 -0.68,-0.79 0.39,-1.04 1.05,-2.29 1.59,-3.3 0.57,-1.06 1.2,-2.15 1.7,-3.17 1.43,-0.02 1.51,0.55 1.8,0.6 -0.1,0.19 -0.02,0.07 -0.16,0.2 -0.01,0.01 -0.21,0.13 -0.23,0.15 -0.8,0.47 -1.8,0.96 -1.37,2.09 0.14,0.37 0.42,0.53 0.75,0.73 1.23,0.73 2.46,1.53 4.32,1.53 0.28,-0.08 0.25,-0.15 0.35,-0.44 0.22,-0.63 0.33,-1.22 0.26,-1.93 -0.11,-1.05 -1.06,-3.33 -2.21,-3.65 -1.31,-0.37 -1.17,0.6 -1.56,1.21l-0.20 -0.19c-0.84,-0.96 -0.61,-0.56 -1.27,-1.09 0.16,-0.47 0.7,-1.32 0.98,-1.82 1.05,-1.91 1.94,-3.59 2.84,-5.61 0.73,0.01 1.23,0.31 1.57,0.68 -0.26,0.25 -1.37,0.7 -1.67,1.19 -0.51,0.8 -0.07,1.45 0.63,1.87 1.15,0.7 2.56,1.58 4.34,1.55 0.33,-0.09 0.46,-0.67 0.52,-0.98 0.28,-1.4 -0.01,-2.34 -0.66,-3.5 -0.49,-0.87 -0.67,-1.3 -1.44,-1.54 -1.15,-0.36 -1.27,0.44 -1.56,1.23 -0.65,-0.55 0.03,-0.23 -1.38,-1.25 0.22,-0.6 1.08,-2.59 1.06,-3.14 0.38,-0.35 0.52,-0.78 0.43,-1.4 0.22,-0.75 0.67,-4.16 0.53,-5 0.32,0.09 0.75,0.4 1.06,0.57 0.35,0.2 0.71,0.39 1.06,0.57 0.73,0.38 1.61,0.62 2.65,0.61 0.58,-0.21 0.64,-1.82 0.61,-2.32 -0.04,-0.79 -0.45,-1.64 -0.77,-2.19 -0.39,-0.68 -0.64,-1.3 -1.45,-1.52 -1.33,-0.36 -1.16,0.63 -1.55,1.24 -0.67,-0.66 -0.61,-0.87 -1.64,-1.37 -0.06,-2.55 -0.87,-5.97 -0.9,-6.74l0.15 -0.03 0.01 -0.03z"
                 />
               </g>
             </svg>
           </div>
         </Link>
 
-        {loading && (
-          <p className="mt-10 font-mono text-sm text-inktext/50">
-            reading pass…
-          </p>
-        )}
+        {/* ===== Skeleton while loading ===== */}
+        {loading && <JobDetailSkeleton />}
 
         {error && (
           <div className="mt-6 rounded-xl border border-gold/40 bg-gold/10 px-4 py-3 text-sm">
@@ -161,128 +210,161 @@ export default function JobDetailPage() {
         )}
 
         {job && (
-          <article className="mt-6 rounded-xl border border-hairline bg-surface overflow-hidden">
-            <div className="bg-ink text-stock px-6 py-4 flex items-center justify-between">
-              <span className="font-mono text-xs uppercase tracking-wider text-stock/70">
-                {job.source} clearance · ID·{job.source_job_id}
-              </span>
-              <span
-                className="w-3.5 h-3.5 rounded-full border border-stock/40"
-                aria-hidden="true"
-              />
-            </div>
-
-            <div className="p-6 sm:p-8">
-              <h1 className="font-display font-semibold text-2xl sm:text-3xl text-inktext">
-                {job.job_title}
-              </h1>
-              <p className="mt-1 text-inktext/70">{job.company}</p>
-
-              <dl className="mt-5 grid grid-cols-2 gap-4 text-sm font-mono">
-                <div>
-                  <dt className="text-inktext/40 uppercase text-xs">posted</dt>
-                  <dd className="mt-0.5">{job.posted_date || "—"}</dd>
-                </div>
-                <div>
-                  <dt className="text-inktext/40 uppercase text-xs">closes</dt>
-                  <dd className="mt-0.5">{job.closing_date || "—"}</dd>
-                </div>
-              </dl>
-
-              {job.short_description && (
-                <p className="mt-6 text-inktext/80 leading-relaxed">
-                  {job.short_description}
-                </p>
-              )}
-
-              <div className="mt-8 flex flex-wrap gap-3 items-center">
-                {/* Fancy hand-drawn apply button (kept) */}
-                {job.contact_email && (
-                  <a
-                    href={`https://mail.google.com/mail/#inbox?compose=${encodeURIComponent(
-    `to=${job.contact_email}&subject=Application: ${job.job_title}`
-  )}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hand-btn"
-                  >
-                    <svg
-                      className="highlight"
-                      viewBox="0 0 144.75738 77.18431"
-                      preserveAspectRatio="none"
-                    >
-                      <g transform="translate(-171.52826,-126.11624)">
-                        <g
-                          fill="none"
-                          strokeWidth={17}
-                          strokeLinecap="round"
-                          strokeMiterlimit={10}
-                        >
-                          <path d="M180.02826,169.45123c0,0 12.65228,-25.55115 24.2441,-25.66863c6.39271,-0.06479 -5.89143,46.12943 4.90937,50.63857c10.22345,4.2681 24.14292,-52.38336 37.86455,-59.80493c3.31715,-1.79413 -5.35094,45.88889 -0.78872,58.34589c5.19371,14.18125 33.36934,-58.38221 36.43049,-56.91633c4.67078,2.23667 -0.06338,44.42744 5.22574,47.53647c6.04041,3.55065 19.87185,-20.77286 19.87185,-20.77286" />
-                        </g>
-                      </g>
-                    </svg>
-                    apply via email
-                  </a>
-                )}
-
-                {/* Fancy liquid original post button (kept) */}
-                {job.detail_url && (
-                  <a
-                    href={job.detail_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="liquid-btn"
-                  >
-                    <div className="liquid-btn-bg">
-                      <span>Original Post</span>
-                    </div>
-                    <div className="drops">
-                      <div className="drop1" />
-                      <div className="drop2" />
-                      <div className="drop3" />
-                    </div>
-                  </a>
-                )}
+          <div className="relative mt-6">
+            {/* ===== Job Card ===== */}
+            <article
+              className={`relative z-10 rounded-xl border border-hairline bg-surface overflow-hidden transition-all duration-500 ease-out ${
+                showFullText ? "-translate-x-4" : "translate-x-0"
+              }`}
+            >
+              <div className="bg-ink text-stock px-6 py-4 flex items-center justify-between">
+                <span className="font-mono text-xs uppercase tracking-wider text-stock/70">
+                  {job.source} clearance · ID·{job.source_job_id}
+                </span>
+                <span
+                  className="w-3.5 h-3.5 rounded-full border border-stock/40"
+                  aria-hidden="true"
+                />
               </div>
 
-              {/* Improved description formatting (from second code) */}
-              {job.description && (
-                <details className="mt-8 badge-tear pt-6">
-                  <summary className="cursor-pointer font-mono text-xs uppercase tracking-wide text-inktext/50 hover:text-park">
-                    full posting text
-                  </summary>
-                  <div className="mt-4 space-y-5">
-                    {formatJobDescription(job.description).map((section, i) => (
-                      <div key={i}>
-                        {section.heading && (
-                          <h4 className="font-display font-semibold text-sm text-inktext mb-1.5">
-                            {section.heading}
-                          </h4>
-                        )}
-                        {section.items.length > 1 ? (
-                          <ul className="list-disc list-outside pl-5 space-y-1.5">
-                            {section.items.map((item, j) => (
-                              <li
-                                key={j}
-                                className="text-sm text-inktext/70 leading-relaxed"
-                              >
-                                {item}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="text-sm text-inktext/70 leading-relaxed">
-                            {section.items[0]}
-                          </p>
-                        )}
-                      </div>
-                    ))}
+              <div className="p-6 sm:p-8">
+                <h1 className="font-display font-semibold text-2xl sm:text-3xl text-inktext">
+                  {job.job_title}
+                </h1>
+                <p className="mt-1 text-inktext/70">{job.company}</p>
+
+                <dl className="mt-5 grid grid-cols-2 gap-4 text-sm font-mono">
+                  <div>
+                    <dt className="text-inktext/40 uppercase text-xs">posted</dt>
+                    <dd className="mt-0.5">{job.posted_date || "—"}</dd>
                   </div>
-                </details>
-              )}
-            </div>
-          </article>
+                  <div>
+                    <dt className="text-inktext/40 uppercase text-xs">closes</dt>
+                    <dd className="mt-0.5">{job.closing_date || "—"}</dd>
+                  </div>
+                </dl>
+
+                {job.short_description && (
+                  <p className="mt-6 text-inktext/80 leading-relaxed">
+                    {job.short_description}
+                  </p>
+                )}
+
+                <div className="mt-8 flex flex-wrap gap-3 items-center">
+                  {job.contact_email && (
+                    <a
+                      href={`https://mail.google.com/mail/#inbox?compose=${encodeURIComponent(
+                        `to=${job.contact_email}&subject=Application: ${job.job_title}`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hand-btn"
+                    >
+                      <svg
+                        className="highlight"
+                        viewBox="0 0 144.75738 77.18431"
+                        preserveAspectRatio="none"
+                      >
+                        <g transform="translate(-171.52826,-126.11624)">
+                          <g
+                            fill="none"
+                            strokeWidth={17}
+                            strokeLinecap="round"
+                            strokeMiterlimit={10}
+                          >
+                            <path d="M180.02826,169.45123c0,0 12.65228,-25.55115 24.2441,-25.66863c6.39271,-0.06479 -5.89143,46.12943 4.90937,50.63857c10.22345,4.2681 24.14292,-52.38336 37.86455,-59.80493c3.31715,-1.79413 -5.35094,45.88889 -0.78872,58.34589c5.19371,14.18125 33.36934,-58.38221 36.43049,-56.91633c4.67078,2.23667 -0.06338,44.42744 5.22574,47.53647c6.04041,3.55065 19.87185,-20.77286 19.87185,-20.77286" />
+                          </g>
+                        </g>
+                      </svg>
+                      apply via email
+                    </a>
+                  )}
+
+                  {job.detail_url && (
+                    <a
+                      href={job.detail_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="liquid-btn"
+                    >
+                      <div className="liquid-btn-bg">
+                        <span>Original Post</span>
+                      </div>
+                      <div className="drops">
+                        <div className="drop1" />
+                        <div className="drop2" />
+                        <div className="drop3" />
+                      </div>
+                    </a>
+                  )}
+                </div>
+
+                {job.description && (
+                  <button
+                    onClick={() => setShowFullText((v) => !v)}
+                    className="mt-8 font-mono text-xs uppercase tracking-wide text-inktext/50 hover:text-park transition-colors"
+                  >
+                    {showFullText ? "hide full posting text" : "full posting text"}
+                  </button>
+                )}
+              </div>
+            </article>
+
+            {/* ===== Full Posting Text Card ===== */}
+            {job.description && (
+              <div
+                className={`absolute top-0 left-0 w-full h-full
+                            rounded-xl border border-hairline bg-surface
+                            transition-all duration-500 ease-out
+                            ${
+                              showFullText
+                                ? "translate-x-[calc(100%+1rem)] opacity-100"
+                                : "translate-x-0 opacity-0 pointer-events-none"
+                            }`}
+                style={{ zIndex: 0 }}
+              >
+                <div className="bg-ink text-stock px-6 py-4 flex items-center justify-between rounded-t-xl">
+                  <span className="font-mono text-xs uppercase tracking-wider text-stock/70">
+                    full posting text
+                  </span>
+                  <button
+                    onClick={() => setShowFullText(false)}
+                    className="text-stock/60 hover:text-stock text-sm"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="p-6 sm:p-8 space-y-5 h-[calc(100%-57px)] overflow-y-auto">
+                  {formatJobDescription(job.description).map((section, i) => (
+                    <div key={i}>
+                      {section.heading && (
+                        <h4 className="font-display font-semibold text-sm text-inktext mb-1.5">
+                          {section.heading}
+                        </h4>
+                      )}
+                      {section.items.length > 1 ? (
+                        <ul className="list-disc list-outside pl-5 space-y-1.5">
+                          {section.items.map((item, j) => (
+                            <li
+                              key={j}
+                              className="text-sm text-inktext/70 leading-relaxed"
+                            >
+                              {item}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-sm text-inktext/70 leading-relaxed">
+                          {section.items[0]}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>

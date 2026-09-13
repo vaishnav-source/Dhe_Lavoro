@@ -14,9 +14,20 @@ const SOURCE_LABEL: Record<string, string> = {
   technopark: "Technopark",
 };
 
+// null experience_max means an open-ended "X+ years" posting (see
+// experience_extractor.py) — render that as "5+ yrs" instead of "5-null yrs".
+function formatExperience(min: number | null, max: number | null): string | null {
+  if (min === null) return null;
+  if (min === 0 && max === 0) return "fresher";
+  if (max === null) return `${min}+ yrs`;
+  if (min === max) return `${min} yrs`;
+  return `${min}-${max} yrs`;
+}
+
 export default function JobCard({ job }: { job: Job }) {
   const remaining = daysUntil(job.closing_date);
   const urgent = remaining !== null && remaining <= 5 && remaining >= 0;
+  const experience = formatExperience(job.experience_min, job.experience_max);
 
   return (
     <Link
@@ -44,12 +55,19 @@ export default function JobCard({ job }: { job: Job }) {
           </p>
         )}
 
-        {urgent && (
-          <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-gold/15 text-inktext text-xs font-medium px-2.5 py-1 font-mono">
-            <span className="w-1.5 h-1.5 rounded-full bg-gold" />
-            {remaining === 0 ? "closes today" : `${remaining}d to close`}
-          </span>
-        )}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {experience && (
+            <span className="inline-flex items-center rounded-full bg-park/10 text-park text-xs font-medium px-2.5 py-1 font-mono">
+              {experience}
+            </span>
+          )}
+          {urgent && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-gold/15 text-inktext text-xs font-medium px-2.5 py-1 font-mono">
+              <span className="w-1.5 h-1.5 rounded-full bg-gold" />
+              {remaining === 0 ? "closes today" : `${remaining}d to close`}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Tear line + badge ID footer — mt-auto pins it to the bottom */}

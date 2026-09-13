@@ -11,6 +11,8 @@ export interface Job {
   short_description: string | null;
   contact_email: string | null;
   status: string;
+  experience_min: number | null;
+  experience_max: number | null;
 }
 
 export interface JobListResponse {

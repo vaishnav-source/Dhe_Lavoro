@@ -19,6 +19,19 @@ DEFAULT_LIMIT = 20
 MAX_LIMIT = 100
 
 
+def _parse_int_param(name: str):
+    """Reads an optional int query param, silently ignoring it if it's
+    missing or not a valid int — an unparseable exp_min/exp_max shouldn't
+    500 the whole request, it should just not filter on it."""
+    raw = request.args.get(name)
+    if raw is None or raw == "":
+        return None
+    try:
+        return int(raw)
+    except ValueError:
+        return None
+
+
 def _parse_pagination():
     """Reads page/limit query params with sane bounds — never trust raw
     client input directly into a DB range() call."""
@@ -42,6 +55,8 @@ def list_jobs():
 
     search = request.args.get("search", "").strip()
     source = request.args.get("source", "").strip()
+    exp_min = _parse_int_param("exp_min")
+    exp_max = _parse_int_param("exp_max")
     page, limit = _parse_pagination()
     offset = (page - 1) * limit
 
@@ -53,6 +68,18 @@ def list_jobs():
         # matches job title OR company, case-insensitive
         escaped = search.replace(",", "")  # commas break the or_() filter syntax
         query = query.or_(f"job_title.ilike.%{escaped}%,company.ilike.%{escaped}%")
+    if exp_min is not None or exp_max is not None:
+        # Range-overlap filter against experience_min/experience_max
+        # (nullable — regex extraction doesn't catch every posting).
+        # A job with no extracted range at all can't be matched either
+        # way, so it's excluded rather than silently included.
+        query = query.not_.is_("experience_min", "null")
+        if exp_min is not None:
+            # job's upper bound must reach exp_min — a null experience_max
+            # means "X+ years", i.e. open-ended, so it always qualifies
+            query = query.or_(f"experience_max.gte.{exp_min},experience_max.is.null")
+        if exp_max is not None:
+            query = query.lte("experience_min", exp_max)
 
     query = query.order("id", desc=True).range(offset, offset + limit - 1)
 

@@ -17,6 +17,8 @@ Schema assumed (create this table in Supabase SQL editor first):
         description text,                    -- filled in by detail-page backfill
         contact_email text,                  -- filled in by detail-page backfill
         short_description text,              -- AI-generated summary, filled in by backfill
+        experience_min int,                  -- years, regex-extracted from description
+        experience_max int,                  -- years, null means open-ended (e.g. "5+ years")
         status text not null default 'active',   -- 'active' | 'expired'
         expired_at timestamptz,              -- set the moment status flips to 'expired'
         last_seen_at timestamptz not null default now(),
@@ -33,6 +35,8 @@ existed, run this migration instead of recreating the table:
     alter table jobs add column if not exists contact_email text;
     alter table jobs add column if not exists short_description text;
     alter table jobs add column if not exists expired_at timestamptz;
+    alter table jobs add column if not exists experience_min int;
+    alter table jobs add column if not exists experience_max int;
 """
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone, timedelta
@@ -161,14 +165,25 @@ def update_job_detail(
     description: Optional[str],
     contact_email: Optional[str],
     short_description: Optional[str] = None,
+    experience_min: Optional[int] = None,
+    experience_max: Optional[int] = None,
     client: Client | None = None,
 ) -> bool:
     """Update one job row with detail-page results (and, if provided, an
-    AI-generated short summary)."""
+    AI-generated short summary and/or a regex-extracted experience range).
+
+    Same pattern as short_description: experience_min/experience_max are
+    only written when the caller passes a non-None value. A description
+    the extractor found nothing in just leaves the columns at their
+    default null rather than us writing an explicit null over them."""
     db = client or get_client()
     values = {"description": description, "contact_email": contact_email}
     if short_description is not None:
         values["short_description"] = short_description
+    if experience_min is not None:
+        values["experience_min"] = experience_min
+    if experience_max is not None:
+        values["experience_max"] = experience_max
 
     result = (
         db.table("jobs")
