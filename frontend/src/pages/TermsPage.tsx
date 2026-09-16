@@ -120,7 +120,7 @@ const OFFICIAL_LINKS = [
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen overflow-x-hidden">
       <header className="bg-ink text-stock">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-10 pb-8">
           <Link
