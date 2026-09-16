@@ -47,7 +47,7 @@
 
   body {
     @apply bg-stock text-inktext font-body antialiased;
-    overflow-x: hidden;   /* important */
+
   }
 
   ::selection {

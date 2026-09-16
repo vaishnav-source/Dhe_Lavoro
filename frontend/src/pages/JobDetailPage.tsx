@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { getJob } from "../api/client";
 import type { Job } from "../types";
 import { formatJobDescription } from "../utils/formatDescription";
@@ -62,6 +62,7 @@ function JobDetailSkeleton() {
 
 export default function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,14 +90,26 @@ export default function JobDetailPage() {
     };
   }, [id]);
 
+  useEffect(() => {
+    if (showFullText) {
+      document.body.style.overflowX = "auto";
+    } else {
+      document.body.style.overflowX = "hidden";
+    }
+
+    return () => {
+      document.body.style.overflowX = "hidden";
+    };
+  }, [showFullText]);
+
   return (
     <div className="min-h-screen">
       <HandDrawnFilters />
       <LiquidFilters />
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-        {/* ===== Back Button (kept exactly as is) ===== */}
-        <Link to="/" className="back-btn">
+        {/* ===== Back Button (now uses navigate(-1)) ===== */}
+        <button type="button" onClick={() => navigate(-1)} className="back-btn">
           <span className="jp-text">
             <span>ク</span>
             <span>エ</span>
@@ -196,7 +209,7 @@ export default function JobDetailPage() {
               </g>
             </svg>
           </div>
-        </Link>
+        </button>
 
         {/* ===== Skeleton while loading ===== */}
         {loading && <JobDetailSkeleton />}

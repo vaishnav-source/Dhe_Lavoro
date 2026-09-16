@@ -20,6 +20,20 @@ const OFFICIAL_LINKS = [
   { label: "Technopark.in", href: "https://technopark.in" },
 ];
 
+// Re-shuffles which order jobs appear in on every fetch — since the
+// backend always returns newest-first (id desc), without this the same
+// jobs would sit in the same order on every visit. Shuffling only the
+// already-fetched page of results (not the query itself) keeps pagination
+// correct.
+function shuffle<T>(items: T[]): T[] {
+  const result = [...items];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
 function JobCardSkeleton() {
   return (
     <div className="rounded-xl border border-hairline bg-surface overflow-hidden animate-pulse">
@@ -99,11 +113,14 @@ export default function JobListPage() {
     })
       .then((res) => {
         if (cancelled) return;
-        setJobs(res.jobs);
+        setJobs(shuffle(res.jobs));
         setTotal(res.total);
       })
       .catch((err) => {
         if (cancelled) return;
+        // Clear stale results on failure
+        setJobs([]);
+        setTotal(0);
         setError(err.message || "Something went wrong");
       })
       .finally(() => {
@@ -121,21 +138,21 @@ export default function JobListPage() {
     <div className="min-h-screen">
       {/* Hero */}
       <header className="bg-ink text-stock">
-  <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-10 pb-8">
-    <div className="mb-6">
-      <span className="font-['Kalam'] font-semibold text-4xl tracking-[0.15em] text-stock/70">
-        Dhe LavoRo
-      </span>
-    </div>
-    <h1 className="font-comico font-semibold text-base sm:text-lg  leading-tight">
-      Every open pass across
-      <br />
-      Kerala's IT parks, in one place.
-    </h1>
-    <p className="mt-3 text-stock/55 text-xs sm:text-sm font-comico max-w-xl">
-      Aggregated from Infopark and Technopark's own listings. Not
-      affiliated with either park.
-    </p>
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-10 pb-8">
+          <div className="mb-6">
+            <span className="font-['Kalam'] font-semibold text-4xl tracking-[0.15em] text-stock/70">
+              Dhe Lavoro
+            </span>
+          </div>
+          <h1 className="font-comico font-semibold text-base sm:text-lg leading-tight">
+            Every open pass across
+            <br />
+            Kerala's IT parks, in one place.
+          </h1>
+          <p className="mt-3 text-stock/55 text-xs sm:text-sm font-comico max-w-xl">
+            Aggregated from Infopark and Technopark's own listings. Not
+            affiliated with either park.
+          </p>
 
           <div className="mt-6">
             <SearchBar

@@ -158,90 +158,86 @@ export default function TermsPage() {
         </p>
       </main>
 
-      {/* ===== Footer ===== */}
-      <footer className="mt-16 bg-ink text-stock w-screen relative left-1/2 -translate-x-1/2">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-12 pb-8">
-          {/* Brand + tagline */}
-          <div className="pb-10 border-b border-stock/10">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-gold" aria-hidden="true" />
-              <span className="font-display font-semibold text-xl">JobPass</span>
-            </div>
-            <p className="mt-2 text-sm text-stock/50 max-w-sm">
-              Every open pass across Kerala's IT parks, aggregated from
-              Infopark and Technopark's own listings.
-            </p>
-          </div>
-
-          {/* Link columns */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-8 py-10">
-            <div>
-              <h3 className="font-mono text-xs uppercase tracking-wider text-stock/40 mb-3">
-                Browse
-              </h3>
-              <ul className="space-y-2 text-sm">
-                {BROWSE_LINKS.map((l) => (
-                  <li key={l.label}>
-                    <Link
-                      to={l.to}
-                      className="text-stock/70 hover:text-stock transition-colors"
-                    >
-                      {l.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-mono text-xs uppercase tracking-wider text-stock/40 mb-3">
-                Company
-              </h3>
-              <ul className="space-y-2 text-sm">
-                {COMPANY_LINKS.map((l) => (
-                  <li key={l.label}>
-                    <Link
-                      to={l.to}
-                      className="text-stock/70 hover:text-stock transition-colors"
-                    >
-                      {l.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-mono text-xs uppercase tracking-wider text-stock/40 mb-3">
-                Official Sites
-              </h3>
-              <ul className="space-y-2 text-sm">
-                {OFFICIAL_LINKS.map((l) => (
-                  <li key={l.label}>
-                    <a
-                      href={l.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-stock/70 hover:text-stock transition-colors"
-                    >
-                      {l.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* Bottom bar */}
-          <div className="pt-6 border-t border-stock/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-stock/40">
-            <p>
-              © {new Date().getFullYear()} JobPass. Not affiliated with
-              Infopark or Technopark.
-            </p>
-            <p>Job data sourced from Infopark and Technopark's public listings.</p>
-          </div>
-        </div>
-      </footer>
-    </div>
-  );
-}
+     {/* ===== Footer ===== */}
+           <footer className="mt-16 bg-ink text-stock w-screen relative left-1/2 -translate-x-1/2">
+             <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-12 pb-8">
+               <div className="pb-10 border-b border-stock/10">
+                 <div>
+                   <span className="font-['Kalam'] font-semibold text-xl">Dhe Lavoro</span>
+                 </div>
+                 <p className="mt-2 text-sm text-stock/50 max-w-sm">
+                   Every open pass across Kerala's IT parks, aggregated from
+                   Infopark and Technopark's own listings.
+                 </p>
+               </div>
+     
+               <div className="grid grid-cols-2 sm:grid-cols-3 gap-8 py-10">
+                 <div>
+                   <h3 className="font-mono text-xs uppercase tracking-wider text-stock/40 mb-3">
+                     Browse
+                   </h3>
+                   <ul className="space-y-2 text-sm">
+                     {BROWSE_LINKS.map((l) => (
+                       <li key={l.label}>
+                         <Link
+                           to={l.to}
+                           className="text-stock/70 hover:text-stock transition-colors"
+                         >
+                           {l.label}
+                         </Link>
+                       </li>
+                     ))}
+                   </ul>
+                 </div>
+     
+                 <div>
+                   <h3 className="font-mono text-xs uppercase tracking-wider text-stock/40 mb-3">
+                     Company
+                   </h3>
+                   <ul className="space-y-2 text-sm">
+                     {COMPANY_LINKS.map((l) => (
+                       <li key={l.label}>
+                         <Link
+                           to={l.to}
+                           className="text-stock/70 hover:text-stock transition-colors"
+                         >
+                           {l.label}
+                         </Link>
+                       </li>
+                     ))}
+                   </ul>
+                 </div>
+     
+                 <div>
+                   <h3 className="font-mono text-xs uppercase tracking-wider text-stock/40 mb-3">
+                     Official Sites
+                   </h3>
+                   <ul className="space-y-2 text-sm">
+                     {OFFICIAL_LINKS.map((l) => (
+                       <li key={l.label}>
+                         <a
+                           href={l.href}
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           className="text-stock/70 hover:text-stock transition-colors"
+                         >
+                           {l.label}
+                         </a>
+                       </li>
+                     ))}
+                   </ul>
+                 </div>
+               </div>
+     
+               <div className="pt-6 border-t border-stock/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-stock/40">
+                 <p>
+                   © {new Date().getFullYear()} Dhe Lavoro. Not affiliated with
+                   Infopark or Technopark.
+                 </p>
+                 <p>Job data sourced from Infopark and Technopark's public listings.</p>
+               </div>
+             </div>
+           </footer>
+         </div>
+       );
+     }

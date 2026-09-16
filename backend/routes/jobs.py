@@ -18,6 +18,13 @@ jobs_bp = Blueprint("jobs", __name__)
 DEFAULT_LIMIT = 20
 MAX_LIMIT = 100
 
+# The two sources this site aggregates. Used to split an unfiltered "All
+# Parks" request into one query per source (see list_jobs) rather than a
+# single ORDER BY id DESC query across the combined table, which would be
+# dominated by whichever source happens to have higher recent IDs (e.g.
+# if it was scraped more recently) instead of actually mixing both parks.
+SOURCES = ["infopark", "technopark"]
+
 
 def _parse_int_param(name: str):
     """Reads an optional int query param, silently ignoring it if it's
@@ -49,21 +56,8 @@ def _parse_pagination():
     return page, limit
 
 
-@jobs_bp.route("/jobs", methods=["GET"])
-def list_jobs():
-    db = get_client()
-
-    search = request.args.get("search", "").strip()
-    source = request.args.get("source", "").strip()
-    exp_min = _parse_int_param("exp_min")
-    exp_max = _parse_int_param("exp_max")
-    page, limit = _parse_pagination()
-    offset = (page - 1) * limit
-
-    query = db.table("jobs").select("*", count="exact").eq("status", "active")
-
-    if source:
-        query = query.eq("source", source)
+def _apply_search_and_experience_filters(query, search, exp_min, exp_max):
+    """Filters shared by every jobs query regardless of source scope."""
     if search:
         # matches job title OR company, case-insensitive
         escaped = search.replace(",", "")  # commas break the or_() filter syntax
@@ -80,18 +74,62 @@ def list_jobs():
             query = query.or_(f"experience_max.gte.{exp_min},experience_max.is.null")
         if exp_max is not None:
             query = query.lte("experience_min", exp_max)
+    return query
 
+
+def _fetch_jobs_page(db, source, search, exp_min, exp_max, offset, limit):
+    """One query, scoped to a single source, for a specific offset/limit
+    slice. Returns (jobs, total_matching_count_for_this_source)."""
+    query = (
+        db.table("jobs")
+        .select("*", count="exact")
+        .eq("status", "active")
+        .eq("source", source)
+    )
+    query = _apply_search_and_experience_filters(query, search, exp_min, exp_max)
     query = query.order("id", desc=True).range(offset, offset + limit - 1)
+    result = query.execute()
+    return result.data or [], result.count or 0
+
+
+@jobs_bp.route("/jobs", methods=["GET"])
+def list_jobs():
+    db = get_client()
+
+    search = request.args.get("search", "").strip()
+    source = request.args.get("source", "").strip()
+    exp_min = _parse_int_param("exp_min")
+    exp_max = _parse_int_param("exp_max")
+    page, limit = _parse_pagination()
 
     try:
-        result = query.execute()
+        if source:
+            offset = (page - 1) * limit
+            jobs, total = _fetch_jobs_page(db, source, search, exp_min, exp_max, offset, limit)
+        else:
+            # "All Parks": split this page evenly across sources instead
+            # of one combined query, so every page is an actual mix
+            # rather than being dominated by one source's ID range.
+            per_source_limit = -(-limit // len(SOURCES))  # ceil division
+            per_source_offset = (page - 1) * per_source_limit
+
+            jobs = []
+            total = 0
+            for src in SOURCES:
+                src_jobs, src_total = _fetch_jobs_page(
+                    db, src, search, exp_min, exp_max, per_source_offset, per_source_limit
+                )
+                jobs.extend(src_jobs)
+                total += src_total
+
+            jobs = jobs[:limit]
     except Exception as exc:  # noqa: BLE001
         log.error("list_jobs query failed: %s", exc)
         return jsonify({"error": "failed to fetch jobs"}), 500
 
     return jsonify({
-        "jobs": result.data or [],
-        "total": result.count if result.count is not None else len(result.data or []),
+        "jobs": jobs,
+        "total": total,
         "page": page,
         "limit": limit,
     })
