@@ -1,4 +1,4 @@
-# Kerala IT Park Job Aggregator
+# Dhe Lavoro
 
 Aggregates job listings from Kerala's IT parks (Infopark, Technopark) into one searchable platform, with AI-generated summaries and direct apply-by-email links.
 
