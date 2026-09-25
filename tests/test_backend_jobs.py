@@ -1,4 +1,3 @@
-import json
 
 import backend.routes.jobs as jobs_module
 from backend.app import create_app

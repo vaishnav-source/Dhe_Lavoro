@@ -120,6 +120,7 @@ PROVIDERS: List[Tuple[str, Callable[[str], str]]] = [
     ("groq", _call_groq),
     ("nvidia", _call_nvidia),
     ("openrouter", _call_openrouter),
+    ("huggingface", _call_huggingface),
 ]
 
 _provider_start_index = 0

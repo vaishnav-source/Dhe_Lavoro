@@ -10,7 +10,7 @@ automatically otherwise.
 
 Usage: python -m scraper.cleanup_expired [--days N]
 """
-import sys
+
 import argparse
 
 from scraper.common.db_writer import delete_expired_jobs

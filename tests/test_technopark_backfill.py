@@ -15,7 +15,7 @@ def test_run_backfill_skips_jobs_without_detail_url(monkeypatch):
     update_calls = []
     monkeypatch.setattr(
         backfill, "update_job_detail",
-        lambda fingerprint, description, contact_email, short_description=None: update_calls.append(fingerprint),
+        lambda fingerprint, description, contact_email, short_description=None, experience_min=None, experience_max=None: update_calls.append(fingerprint),
     )
     monkeypatch.setattr(backfill, "polite_delay", lambda: None)
 
@@ -49,7 +49,7 @@ def test_run_backfill_marks_404_jobs_expired_not_updated(monkeypatch):
     update_calls = []
     monkeypatch.setattr(
         backfill, "update_job_detail",
-        lambda fingerprint, description, contact_email, short_description=None: update_calls.append(fingerprint),
+        lambda fingerprint, description, contact_email, short_description=None, experience_min=None, experience_max=None: update_calls.append(fingerprint),
     )
     monkeypatch.setattr(backfill, "polite_delay", lambda: None)
 
