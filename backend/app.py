@@ -3,8 +3,11 @@ Flask backend entrypoint. Serves job data from the same Supabase DB the
 scraper writes to — reuses scraper.common.db.get_client() rather than
 opening a second, separately-configured connection.
 
-Run: python -m backend.app
+Run (dev): python -m backend.app
+Run (prod): gunicorn "backend.app:create_app()"
 """
+import os
+
 from flask import Flask
 from flask_cors import CORS
 
@@ -13,9 +16,16 @@ from backend.routes.jobs import jobs_bp
 
 def create_app() -> Flask:
     app = Flask(__name__)
-    CORS(app)  # tighten to specific origins before production deploy
 
-    # Disable HTTP caching globally so Chrome and other browsers 
+    # Comma-separated allowed origins, e.g. "https://your-app.vercel.app".
+    # Unset (local dev) -> allow all.
+    origins = os.getenv("CORS_ORIGINS")
+    if origins:
+        CORS(app, origins=[o.strip() for o in origins.split(",") if o.strip()])
+    else:
+        CORS(app)
+
+    # Disable HTTP caching globally so Chrome and other browsers
     # always fetch real-time total job counts from the database
     @app.after_request
     def add_header(response):
