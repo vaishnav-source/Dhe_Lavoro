@@ -163,7 +163,7 @@ export default function TermsPage() {
              <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-12 pb-8">
                <div className="pb-10 border-b border-stock/10">
                  <div>
-                   <span className="font-['Kalam'] font-semibold text-xl">Dhe Lavoro</span>
+                   <span className="font-['SF_Pro_Display'] font-semibold text-xl">Dhe Lavoro</span>
                  </div>
                  <p className="mt-2 text-sm text-stock/50 max-w-sm">
                    Every open pass across Kerala's IT parks, aggregated from

@@ -8,9 +8,9 @@ import SearchBar, { EXPERIENCE_RANGES } from "../components/SearchBar";
 const LIMIT = 20;
 
 const BROWSE_LINKS = [
-  { label: "All Parks", to: "/" },
-  { label: "Infopark Jobs", to: "/?source=infopark" },
-  { label: "Technopark Jobs", to: "/?source=technopark" },
+  { label: "All Parks", source: "" },
+  { label: "Infopark Jobs", source: "infopark" },
+  { label: "Technopark Jobs", source: "technopark" },
 ];
 
 const COMPANY_LINKS = [{ label: "Terms & Conditions", to: "/terms" }];
@@ -76,6 +76,13 @@ export default function JobListPage() {
   const [expRange, setExpRange] = useState(searchParams.get("exp") || "");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Footer park links: set the filter and scroll up to the search/filter box.
+  const filterRef = useRef<HTMLDivElement>(null);
+  const handleBrowse = (value: string) => {
+    setSource(value);
+    filterRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const isFirstRender = useRef(true);
   useEffect(() => {
@@ -154,7 +161,7 @@ export default function JobListPage() {
             affiliated with either park.
           </p>
 
-          <div className="mt-6">
+          <div className="mt-6" ref={filterRef}>
             <SearchBar
               value={search}
               onChange={setSearch}
@@ -242,12 +249,13 @@ export default function JobListPage() {
               <ul className="space-y-2 text-sm">
                 {BROWSE_LINKS.map((l) => (
                   <li key={l.label}>
-                    <Link
-                      to={l.to}
-                      className="text-stock/70 hover:text-stock transition-colors"
+                    <button
+                      type="button"
+                      onClick={() => handleBrowse(l.source)}
+                      className="text-stock/70 hover:text-stock transition-colors text-left"
                     >
                       {l.label}
-                    </Link>
+                    </button>
                   </li>
                 ))}
               </ul>
