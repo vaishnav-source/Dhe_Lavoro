@@ -2,11 +2,43 @@ name: scrape
 
 on:
   schedule:
-    - cron: "0 2 */3 * *"   # 02:00 UTC every 3rd day of the month
-  workflow_dispatch:         # manual run button
+    - cron: "30 0,12 * * *"   # 00:30 and 12:30 UTC = 06:00 AM and 06:00 PM IST
+  push:
+    branches: [main]
+    paths:
+      - "scraper/**"
+      - "requirements.txt"
+      - ".github/workflows/scrape.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: scrape
+  cancel-in-progress: false
 
 jobs:
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+    steps:
+      - id: check
+        run: |
+          # push and manual runs always scrape.
+          # scheduled runs scrape only every 3rd day (2 skipped days between).
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            DAY=$(( $(date -u +%s) / 86400 ))
+            if [ $(( DAY % 3 )) -eq 2 ]; then
+              echo "run=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "run=false" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
   scrape:
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
