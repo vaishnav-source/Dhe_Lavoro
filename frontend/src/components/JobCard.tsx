@@ -76,7 +76,7 @@ export default function JobCard({ job }: { job: Job }) {
           ID·{job.source_job_id}
         </span>
         <span className="font-mono text-[11px] text-park font-medium">
-          view pass →
+          view details →
         </span>
       </div>
     </Link>

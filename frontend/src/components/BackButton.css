@@ -14,34 +14,33 @@
   text-decoration: none;
   filter: drop-shadow(2px 2px 3px rgba(0, 0, 0, 0.15));
   overflow: visible;
-  min-width: 160px;
+  min-width: 170px;
   justify-content: center;
 }
 
-/* Japanese text (default visible) */
-.back-btn .jp-text {
+/* English text (default visible) */
+.back-btn .en-text {
   display: inline-flex;
   position: relative;
   z-index: 2;
 }
 
-.back-btn .jp-text span {
+.back-btn .en-text span {
   display: inline-block;
   opacity: 1;
   transform: translateY(0) scale(1);
   transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* English text (hidden by default) */
-.back-btn .en-text {
+/* Alternative text (hidden by default) */
+.back-btn .alt-text {
   display: inline-flex;
   position: absolute;
-  right: 28px;
   z-index: 2;
   pointer-events: none;
 }
 
-.back-btn .en-text span {
+.back-btn .alt-text span {
   display: inline-block;
   opacity: 0;
   transform: translateY(12px) scale(0.7);
@@ -49,54 +48,52 @@
 }
 
 /* ========== HOVER IN ========== */
-.back-btn:hover .jp-text span:nth-child(1) { opacity: 0; transform: translateY(-10px) scale(0.6); transition-delay: 0.00s; }
-.back-btn:hover .jp-text span:nth-child(2) { opacity: 0; transform: translateY(-10px) scale(0.6); transition-delay: 0.04s; }
-.back-btn:hover .jp-text span:nth-child(3) { opacity: 0; transform: translateY(-10px) scale(0.6); transition-delay: 0.08s; }
-.back-btn:hover .jp-text span:nth-child(4) { opacity: 0; transform: translateY(-10px) scale(0.6); transition-delay: 0.12s; }
-.back-btn:hover .jp-text span:nth-child(5) { opacity: 0; transform: translateY(-10px) scale(0.6); transition-delay: 0.16s; }
-.back-btn:hover .jp-text span:nth-child(6) { opacity: 0; transform: translateY(-10px) scale(0.6); transition-delay: 0.20s; }
-.back-btn:hover .jp-text span:nth-child(7) { opacity: 0; transform: translateY(-10px) scale(0.6); transition-delay: 0.24s; }
+.back-btn:hover .en-text span:nth-child(1)  { opacity: 0; transform: translateY(-8px) scale(0.75); transition-delay: 0.00s; }
+.back-btn:hover .en-text span:nth-child(2)  { opacity: 0; transform: translateY(-8px) scale(0.75); transition-delay: 0.03s; }
+.back-btn:hover .en-text span:nth-child(3)  { opacity: 0; transform: translateY(-8px) scale(0.75); transition-delay: 0.06s; }
+.back-btn:hover .en-text span:nth-child(4)  { opacity: 0; transform: translateY(-8px) scale(0.75); transition-delay: 0.09s; }
+.back-btn:hover .en-text span:nth-child(5)  { opacity: 0; transform: translateY(-8px) scale(0.75); transition-delay: 0.12s; }
+.back-btn:hover .en-text span:nth-child(6)  { opacity: 0; transform: translateY(-8px) scale(0.75); transition-delay: 0.15s; }
+.back-btn:hover .en-text span:nth-child(7)  { opacity: 0; transform: translateY(-8px) scale(0.75); transition-delay: 0.18s; }
+.back-btn:hover .en-text span:nth-child(8)  { opacity: 0; transform: translateY(-8px) scale(0.75); transition-delay: 0.21s; }
+.back-btn:hover .en-text span:nth-child(9)  { opacity: 0; transform: translateY(-8px) scale(0.75); transition-delay: 0.24s; }
+.back-btn:hover .en-text span:nth-child(10) { opacity: 0; transform: translateY(-8px) scale(0.75); transition-delay: 0.27s; }
+.back-btn:hover .en-text span:nth-child(11) { opacity: 0; transform: translateY(-8px) scale(0.75); transition-delay: 0.30s; }
+.back-btn:hover .en-text span:nth-child(12) { opacity: 0; transform: translateY(-8px) scale(0.75); transition-delay: 0.33s; }
+.back-btn:hover .en-text span:nth-child(13) { opacity: 0; transform: translateY(-8px) scale(0.75); transition-delay: 0.36s; }
+.back-btn:hover .en-text span:nth-child(14) { opacity: 0; transform: translateY(-8px) scale(0.75); transition-delay: 0.39s; }
 
-.back-btn:hover .en-text span:nth-child(1)  { opacity: 1; transform: translateY(0) scale(1); transition-delay: 0.18s; }
-.back-btn:hover .en-text span:nth-child(2)  { opacity: 1; transform: translateY(0) scale(1); transition-delay: 0.22s; }
-.back-btn:hover .en-text span:nth-child(3)  { opacity: 1; transform: translateY(0) scale(1); transition-delay: 0.26s; }
-.back-btn:hover .en-text span:nth-child(4)  { opacity: 1; transform: translateY(0) scale(1); transition-delay: 0.30s; }
-.back-btn:hover .en-text span:nth-child(5)  { opacity: 1; transform: translateY(0) scale(1); transition-delay: 0.34s; }
-.back-btn:hover .en-text span:nth-child(6)  { opacity: 1; transform: translateY(0) scale(1); transition-delay: 0.38s; }
-.back-btn:hover .en-text span:nth-child(7)  { opacity: 1; transform: translateY(0) scale(1); transition-delay: 0.42s; }
-.back-btn:hover .en-text span:nth-child(8)  { opacity: 1; transform: translateY(0) scale(1); transition-delay: 0.46s; }
-.back-btn:hover .en-text span:nth-child(9)  { opacity: 1; transform: translateY(0) scale(1); transition-delay: 0.50s; }
-.back-btn:hover .en-text span:nth-child(10) { opacity: 1; transform: translateY(0) scale(1); transition-delay: 0.54s; }
-.back-btn:hover .en-text span:nth-child(11) { opacity: 1; transform: translateY(0) scale(1); transition-delay: 0.58s; }
-.back-btn:hover .en-text span:nth-child(12) { opacity: 1; transform: translateY(0) scale(1); transition-delay: 0.62s; }
-.back-btn:hover .en-text span:nth-child(13) { opacity: 1; transform: translateY(0) scale(1); transition-delay: 0.66s; }
-.back-btn:hover .en-text span:nth-child(14) { opacity: 1; transform: translateY(0) scale(1); transition-delay: 0.70s; }
-.back-btn:hover .en-text span:nth-child(15) { opacity: 1; transform: translateY(0) scale(1); transition-delay: 0.74s; }
+.back-btn:hover .alt-text span:nth-child(1) { opacity: 1; transform: translateY(0) scale(1); transition-delay: 0.20s; }
+.back-btn:hover .alt-text span:nth-child(2) { opacity: 1; transform: translateY(0) scale(1); transition-delay: 0.24s; }
+.back-btn:hover .alt-text span:nth-child(3) { opacity: 1; transform: translateY(0) scale(1); transition-delay: 0.28s; }
+.back-btn:hover .alt-text span:nth-child(4) { opacity: 1; transform: translateY(0) scale(1); transition-delay: 0.32s; }
+.back-btn:hover .alt-text span:nth-child(5) { opacity: 1; transform: translateY(0) scale(1); transition-delay: 0.36s; }
+.back-btn:hover .alt-text span:nth-child(6) { opacity: 1; transform: translateY(0) scale(1); transition-delay: 0.40s; }
+.back-btn:hover .alt-text span:nth-child(7) { opacity: 1; transform: translateY(0) scale(1); transition-delay: 0.44s; }
 
 /* ========== MOUSE LEAVE (reverse) ========== */
-.back-btn:not(:hover) .en-text span:nth-child(1)  { transition-delay: 0.00s; }
-.back-btn:not(:hover) .en-text span:nth-child(2)  { transition-delay: 0.03s; }
-.back-btn:not(:hover) .en-text span:nth-child(3)  { transition-delay: 0.06s; }
-.back-btn:not(:hover) .en-text span:nth-child(4)  { transition-delay: 0.09s; }
-.back-btn:not(:hover) .en-text span:nth-child(5)  { transition-delay: 0.12s; }
-.back-btn:not(:hover) .en-text span:nth-child(6)  { transition-delay: 0.15s; }
-.back-btn:not(:hover) .en-text span:nth-child(7)  { transition-delay: 0.18s; }
-.back-btn:not(:hover) .en-text span:nth-child(8)  { transition-delay: 0.21s; }
-.back-btn:not(:hover) .en-text span:nth-child(9)  { transition-delay: 0.24s; }
-.back-btn:not(:hover) .en-text span:nth-child(10) { transition-delay: 0.27s; }
-.back-btn:not(:hover) .en-text span:nth-child(11) { transition-delay: 0.30s; }
-.back-btn:not(:hover) .en-text span:nth-child(12) { transition-delay: 0.33s; }
-.back-btn:not(:hover) .en-text span:nth-child(13) { transition-delay: 0.36s; }
-.back-btn:not(:hover) .en-text span:nth-child(14) { transition-delay: 0.39s; }
-.back-btn:not(:hover) .en-text span:nth-child(15) { transition-delay: 0.42s; }
+.back-btn:not(:hover) .alt-text span:nth-child(1) { transition-delay: 0.00s; }
+.back-btn:not(:hover) .alt-text span:nth-child(2) { transition-delay: 0.04s; }
+.back-btn:not(:hover) .alt-text span:nth-child(3) { transition-delay: 0.08s; }
+.back-btn:not(:hover) .alt-text span:nth-child(4) { transition-delay: 0.12s; }
+.back-btn:not(:hover) .alt-text span:nth-child(5) { transition-delay: 0.16s; }
+.back-btn:not(:hover) .alt-text span:nth-child(6) { transition-delay: 0.20s; }
+.back-btn:not(:hover) .alt-text span:nth-child(7) { transition-delay: 0.24s; }
 
-.back-btn:not(:hover) .jp-text span:nth-child(1) { transition-delay: 0.15s; }
-.back-btn:not(:hover) .jp-text span:nth-child(2) { transition-delay: 0.19s; }
-.back-btn:not(:hover) .jp-text span:nth-child(3) { transition-delay: 0.23s; }
-.back-btn:not(:hover) .jp-text span:nth-child(4) { transition-delay: 0.27s; }
-.back-btn:not(:hover) .jp-text span:nth-child(5) { transition-delay: 0.31s; }
-.back-btn:not(:hover) .jp-text span:nth-child(6) { transition-delay: 0.35s; }
-.back-btn:not(:hover) .jp-text span:nth-child(7) { transition-delay: 0.39s; }
+.back-btn:not(:hover) .en-text span:nth-child(1)  { transition-delay: 0.18s; }
+.back-btn:not(:hover) .en-text span:nth-child(2)  { transition-delay: 0.21s; }
+.back-btn:not(:hover) .en-text span:nth-child(3)  { transition-delay: 0.24s; }
+.back-btn:not(:hover) .en-text span:nth-child(4)  { transition-delay: 0.27s; }
+.back-btn:not(:hover) .en-text span:nth-child(5)  { transition-delay: 0.30s; }
+.back-btn:not(:hover) .en-text span:nth-child(6)  { transition-delay: 0.33s; }
+.back-btn:not(:hover) .en-text span:nth-child(7)  { transition-delay: 0.36s; }
+.back-btn:not(:hover) .en-text span:nth-child(8)  { transition-delay: 0.39s; }
+.back-btn:not(:hover) .en-text span:nth-child(9)  { transition-delay: 0.42s; }
+.back-btn:not(:hover) .en-text span:nth-child(10) { transition-delay: 0.45s; }
+.back-btn:not(:hover) .en-text span:nth-child(11) { transition-delay: 0.48s; }
+.back-btn:not(:hover) .en-text span:nth-child(12) { transition-delay: 0.51s; }
+.back-btn:not(:hover) .en-text span:nth-child(13) { transition-delay: 0.54s; }
+.back-btn:not(:hover) .en-text span:nth-child(14) { transition-delay: 0.57s; }
 
 /* Background hover */
 .back-btn:hover {

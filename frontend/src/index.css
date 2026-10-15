@@ -3,35 +3,25 @@
 @tailwind utilities;
 
 @font-face {
-  font-family: "Comico-Regular";
-  src: url("/fonts/comico/Comico-Regular.woff2") format("woff2"),
-       url("/fonts/comico/Comico-Regular.woff") format("woff"),
-       url("/fonts/comico/Comico-Regular.ttf") format("truetype");
+  font-family: 'SF Pro Display';
+  src: url('/fonts/sf-pro/SFPRODISPLAYREGULAR.OTF') format('opentype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "Kalam";
-  src: url("/fonts/kalam/Kalam-Regular.woff2") format("woff2");
-  font-weight: 400;
+  font-family: 'SF Pro Display';
+  src: url('/fonts/sf-pro/SFPRODISPLAYMEDIUM.OTF') format('opentype');
+  font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "Kalam";
-  src: url("/fonts/kalam/Kalam-Bold.woff2") format("woff2");
+  font-family: 'SF Pro Display';
+  src: url('/fonts/sf-pro/SFPRODISPLAYBOLD.OTF') format('opentype');
   font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Kalam";
-  src: url("/fonts/kalam/Kalam-Light.woff2") format("woff2");
-  font-weight: 300;
   font-style: normal;
   font-display: swap;
 }

@@ -110,33 +110,32 @@ export default function JobDetailPage() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
         {/* ===== Back Button (now uses navigate(-1)) ===== */}
         <button type="button" onClick={() => navigate(-1)} className="back-btn">
-          <span className="jp-text">
-            <span>ク</span>
-            <span>エ</span>
-            <span>ス</span>
-            <span>ト</span>
-            <span>に</span>
-            <span>戻</span>
-            <span>る</span>
-          </span>
-
           <span className="en-text">
-            <span>R</span>
-            <span>e</span>
-            <span>t</span>
-            <span>u</span>
-            <span>r</span>
-            <span>n</span>
-            <span>&nbsp;</span>
-            <span>t</span>
-            <span>o</span>
-            <span>&nbsp;</span>
-            <span>Q</span>
-            <span>u</span>
-            <span>e</span>
-            <span>s</span>
-            <span>t</span>
-          </span>
+          <span>R</span>
+          <span>e</span>
+          <span>t</span>
+          <span>u</span>
+          <span>r</span>
+          <span>n</span>
+          <span>&nbsp;</span>
+          <span>t</span>
+          <span>o</span>
+          <span>&nbsp;</span>
+          <span>J</span>
+          <span>o</span>
+          <span>b</span>
+          <span>s</span>
+        </span>
+
+        <span className="alt-text">
+          <span>G</span>
+          <span>O</span>
+          <span>&nbsp;</span>
+          <span>B</span>
+          <span>A</span>
+          <span>C</span>
+          <span>K</span>
+        </span>
 
           {/* icon-1 */}
           <div className="icon-1">
@@ -289,7 +288,7 @@ export default function JobDetailPage() {
                           </g>
                         </g>
                       </svg>
-                      apply via email
+                      apply via mail
                     </a>
                   )}
 

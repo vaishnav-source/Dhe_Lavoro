@@ -140,16 +140,16 @@ export default function JobListPage() {
       <header className="bg-ink text-stock">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-10 pb-8">
           <div className="mb-6">
-            <span className="font-['Kalam'] font-semibold text-4xl tracking-[0.15em] text-stock/70">
+            <span className="font-['SF_Pro_Display'] font-semibold text-4xl tracking-[0.15em] text-stock/70">
               Dhe Lavoro
             </span>
           </div>
-          <h1 className="font-comico font-semibold text-base sm:text-lg leading-tight">
+          <h1 className="font-['SF_Pro_Display'] font-semibold text-base sm:text-lg leading-tight">
             Every open pass across
             <br />
             Kerala's IT parks, in one place.
           </h1>
-          <p className="mt-3 text-stock/55 text-xs sm:text-sm font-comico max-w-xl">
+          <p className="mt-3 text-stock/55 text-xs sm:text-sm font-['SF_Pro_Display'] max-w-xl">
             Aggregated from Infopark and Technopark's own listings. Not
             affiliated with either park.
           </p>
@@ -226,7 +226,7 @@ export default function JobListPage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-12 pb-8">
           <div className="pb-10 border-b border-stock/10">
             <div>
-              <span className="font-['Kalam'] font-semibold text-xl">Dhe Lavoro</span>
+              <span className="font-['SF_Pro_Display'] font-semibold text-xl">Dhe Lavoro</span>
             </div>
             <p className="mt-2 text-sm text-stock/50 max-w-sm">
               Every open pass across Kerala's IT parks, aggregated from
