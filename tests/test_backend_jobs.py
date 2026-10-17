@@ -1,4 +1,3 @@
-
 import backend.routes.jobs as jobs_module
 from backend.app import create_app
 
@@ -49,6 +48,10 @@ class FakeQuery:
 
     def order(self, col, desc=False):
         self.call_record["order"] = (col, desc)
+        return self
+
+    def limit(self, n):
+        self.call_record["limit"] = n
         return self
 
     def range(self, start, end):
@@ -117,7 +120,8 @@ def test_list_jobs_returns_pagination_metadata(monkeypatch):
     assert body["page"] == 2
     assert body["limit"] == 10
     assert body["total"] == 42
-    assert fake_client.recorder["range"] == (10, 19)
+    # call 0 = count query, call 1 = the actual page slice
+    assert fake_client.calls[1]["range"] == (10, 19)
 
 
 def test_list_jobs_limit_is_capped(monkeypatch):
@@ -258,7 +262,159 @@ def test_list_jobs_query_failure_returns_500(monkeypatch):
     assert "error" in resp.get_json()
 
 
-def test_list_jobs_all_parks_queries_each_source_separately(monkeypatch):
+class MemoryQuery:
+    """Tiny in-memory stand-in for a supabase query over a list of rows.
+    Honors eq(), order(), limit(), range() and count="exact" like
+    PostgREST — including raising when range() starts past the end of
+    the rows, which is what caused the old "page 38 -> 500" bug."""
+
+    def __init__(self, rows):
+        self._rows = rows
+        self._count = False
+        self._limit = None
+        self._range = None
+        self._desc = False
+
+    def select(self, cols, count=None):
+        self._count = count == "exact"
+        return self
+
+    def eq(self, col, val):
+        self._rows = [r for r in self._rows if r.get(col) == val]
+        return self
+
+    def order(self, col, desc=False):
+        self._rows = sorted(self._rows, key=lambda r: r[col], reverse=desc)
+        return self
+
+    def limit(self, n):
+        self._limit = n
+        return self
+
+    def range(self, start, end):
+        self._range = (start, end)
+        return self
+
+    def execute(self):
+        total = len(self._rows)
+        rows = self._rows
+        if self._range is not None:
+            start, end = self._range
+            if start >= total and total > 0:
+                raise RuntimeError("416 Requested range not satisfiable")
+            rows = rows[start:end + 1]
+        if self._limit is not None:
+            rows = rows[:self._limit]
+        return FakeResult(rows, total if self._count else None)
+
+
+class MemoryClient:
+    def __init__(self, rows):
+        self.rows = rows
+        self.calls = 0
+
+    def table(self, name):
+        self.calls += 1
+        return MemoryQuery(list(self.rows))
+
+
+def make_rows(infopark, technopark):
+    rows = []
+    for i in range(infopark):
+        rows.append({"id": 1000 + i, "source": "infopark", "status": "active"})
+    for i in range(technopark):
+        rows.append({"id": 5000 + i, "source": "technopark", "status": "active"})
+    return rows
+
+
+def fetch_all_pages(client, limit=20, query=""):
+    ids, page, total = [], 1, None
+    while True:
+        body = client.get(f"/api/jobs?page={page}&limit={limit}{query}").get_json()
+        assert "error" not in body, f"page {page} failed"
+        total = body["total"]
+        ids.extend(j["id"] for j in body["jobs"])
+        if page >= -(-total // limit):
+            return ids, total
+        page += 1
+
+
+def test_all_parks_unbalanced_sources_every_page_works_and_every_job_reachable(monkeypatch):
+    # Regression: 365 vs 445 jobs. Old code asked the smaller source for
+    # rows past its end around page 37 -> HTTP 500.
+    rows = make_rows(365, 445)
+    client = make_app_client(monkeypatch, MemoryClient(rows))
+
+    ids, total = fetch_all_pages(client, limit=20)
+
+    assert total == 810
+    assert len(ids) == 810            # no page lost jobs
+    assert len(set(ids)) == 810       # no duplicates across pages
+
+
+def test_all_parks_pages_are_full_until_the_last(monkeypatch):
+    client = make_app_client(monkeypatch, MemoryClient(make_rows(365, 445)))
+
+    sizes = [
+        len(client.get(f"/api/jobs?page={p}&limit=20").get_json()["jobs"])
+        for p in range(1, 42)
+    ]
+
+    assert sizes[:40] == [20] * 40
+    assert sizes[40] == 10            # 810 = 40 full pages + 10
+
+
+def test_all_parks_first_page_mixes_both_sources_newest_first(monkeypatch):
+    client = make_app_client(monkeypatch, MemoryClient(make_rows(50, 50)))
+
+    jobs = client.get("/api/jobs?page=1&limit=20").get_json()["jobs"]
+
+    assert [j["source"] for j in jobs[:4]] == [
+        "infopark", "technopark", "infopark", "technopark",
+    ]
+    infopark_ids = [j["id"] for j in jobs if j["source"] == "infopark"]
+    assert infopark_ids == sorted(infopark_ids, reverse=True)
+
+
+def test_all_parks_one_source_empty_still_paginates(monkeypatch):
+    client = make_app_client(monkeypatch, MemoryClient(make_rows(0, 45)))
+
+    ids, total = fetch_all_pages(client, limit=20)
+
+    assert total == 45
+    assert len(set(ids)) == 45
+
+
+def test_all_parks_page_past_the_end_returns_empty_not_500(monkeypatch):
+    client = make_app_client(monkeypatch, MemoryClient(make_rows(10, 10)))
+
+    resp = client.get("/api/jobs?page=99&limit=20")
+
+    assert resp.status_code == 200
+    assert resp.get_json()["jobs"] == []
+    assert resp.get_json()["total"] == 20
+
+
+def test_single_source_page_past_the_end_returns_empty_not_500(monkeypatch):
+    client = make_app_client(monkeypatch, MemoryClient(make_rows(10, 10)))
+
+    resp = client.get("/api/jobs?source=infopark&page=99&limit=20")
+
+    assert resp.status_code == 200
+    assert resp.get_json()["jobs"] == []
+    assert resp.get_json()["total"] == 10
+
+
+def test_single_source_last_partial_page(monkeypatch):
+    client = make_app_client(monkeypatch, MemoryClient(make_rows(25, 10)))
+
+    body = client.get("/api/jobs?source=infopark&page=2&limit=20").get_json()
+
+    assert len(body["jobs"]) == 5
+    assert all(j["source"] == "infopark" for j in body["jobs"])
+
+
+def test_all_parks_counts_each_source_separately(monkeypatch):
     fake_client = FakeClient(data=[], count=0)
     client = make_app_client(monkeypatch, fake_client)
 
@@ -269,62 +425,7 @@ def test_list_jobs_all_parks_queries_each_source_separately(monkeypatch):
     assert ("source", "technopark") in fake_client.calls[1]["eq_filters"]
 
 
-def test_list_jobs_all_parks_combines_counts_from_both_sources(monkeypatch):
-    fake_client = FakeClient(
-        results=[
-            FakeResult([{"id": 1, "source": "infopark"}], count=30),
-            FakeResult([{"id": 2, "source": "technopark"}], count=12),
-        ]
-    )
-    client = make_app_client(monkeypatch, fake_client)
-
-    resp = client.get("/api/jobs?limit=20")
-
-    body = resp.get_json()
-    assert body["total"] == 42  # 30 + 12, not just one source's count
-    sources_returned = {job["source"] for job in body["jobs"]}
-    assert sources_returned == {"infopark", "technopark"}
-
-
-def test_list_jobs_all_parks_splits_limit_evenly_per_source(monkeypatch):
-    fake_client = FakeClient(data=[], count=0)
-    client = make_app_client(monkeypatch, fake_client)
-
-    client.get("/api/jobs?limit=20&page=1")
-
-    # 20 split across 2 sources = 10 each, starting at offset 0
-    assert fake_client.calls[0]["range"] == (0, 9)
-    assert fake_client.calls[1]["range"] == (0, 9)
-
-
-def test_list_jobs_all_parks_offset_advances_per_source_on_later_pages(monkeypatch):
-    fake_client = FakeClient(data=[], count=0)
-    client = make_app_client(monkeypatch, fake_client)
-
-    client.get("/api/jobs?limit=20&page=2")
-
-    # page 2 of a 20-per-page, 2-source split = offset 10 within each
-    # source's own 10-per-page half, i.e. rows 10-19 of that source
-    assert fake_client.calls[0]["range"] == (10, 19)
-    assert fake_client.calls[1]["range"] == (10, 19)
-
-
-def test_list_jobs_all_parks_trims_combined_results_to_requested_limit(monkeypatch):
-    fake_client = FakeClient(
-        results=[
-            FakeResult([{"id": i} for i in range(10)], count=10),
-            FakeResult([{"id": i} for i in range(10, 20)], count=10),
-        ]
-    )
-    client = make_app_client(monkeypatch, fake_client)
-
-    resp = client.get("/api/jobs?limit=15")
-
-    body = resp.get_json()
-    assert len(body["jobs"]) == 15  # 10 + 10 combined, trimmed to the 15 asked for
-
-
-def test_list_jobs_single_source_still_issues_only_one_query(monkeypatch):
+def test_single_source_with_no_matches_issues_only_the_count_query(monkeypatch):
     fake_client = FakeClient(data=[], count=0)
     client = make_app_client(monkeypatch, fake_client)
 

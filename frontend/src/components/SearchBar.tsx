@@ -41,7 +41,7 @@ export default function SearchBar({
             type="text"
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            placeholder="search role or company"
+            placeholder="Search Role"
             className="w-full bg-transparent py-2.5 text-sm font-body text-black placeholder:text-inktext/40 focus:outline-none"
           />
         </div>

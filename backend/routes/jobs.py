@@ -18,9 +18,9 @@ jobs_bp = Blueprint("jobs", __name__)
 DEFAULT_LIMIT = 20
 MAX_LIMIT = 100
 
-# The two sources this site aggregates. Used to split an unfiltered "All
-# Parks" request into one query per source (see list_jobs) rather than a
-# single ORDER BY id DESC query across the combined table, which would be
+# The two sources this site aggregates. An unfiltered "All Parks" request
+# interleaves them (see _interleaved_plan) rather than running a single
+# ORDER BY id DESC query across the combined table, which would be
 # dominated by whichever source happens to have higher recent IDs (e.g.
 # if it was scraped more recently) instead of actually mixing both parks.
 SOURCES = ["infopark", "technopark"]
@@ -77,19 +77,86 @@ def _apply_search_and_experience_filters(query, search, exp_min, exp_max):
     return query
 
 
-def _fetch_jobs_page(db, source, search, exp_min, exp_max, offset, limit):
-    """One query, scoped to a single source, for a specific offset/limit
-    slice. Returns (jobs, total_matching_count_for_this_source)."""
+def _base_query(db, source, search, exp_min, exp_max, columns, **select_kwargs):
+    """Active jobs for one source with the shared search/experience filters."""
     query = (
         db.table("jobs")
-        .select("*", count="exact")
+        .select(columns, **select_kwargs)
         .eq("status", "active")
         .eq("source", source)
     )
-    query = _apply_search_and_experience_filters(query, search, exp_min, exp_max)
-    query = query.order("id", desc=True).range(offset, offset + limit - 1)
-    result = query.execute()
-    return result.data or [], result.count or 0
+    return _apply_search_and_experience_filters(query, search, exp_min, exp_max)
+
+
+def _count_matching(db, source, search, exp_min, exp_max):
+    """How many active jobs match for one source. Needed up front so we
+    never ask PostgREST for a range past the end of a source's rows —
+    that returns HTTP 416 and used to surface as a 500 on later pages."""
+    query = _base_query(db, source, search, exp_min, exp_max, "id", count="exact")
+    return query.limit(1).execute().count or 0
+
+
+def _fetch_slice(db, source, search, exp_min, exp_max, start, end):
+    """Rows start..end (inclusive) of one source, newest first."""
+    query = _base_query(db, source, search, exp_min, exp_max, "*")
+    return query.order("id", desc=True).range(start, end).execute().data or []
+
+
+def _interleaved_plan(counts, offset, limit):
+    """Which (source, row_index_within_source) sits at each position of the
+    combined "All Parks" list, for positions offset..offset+limit-1.
+
+    The combined list alternates sources (infopark, technopark, infopark,
+    ...) while both still have rows, then continues with whatever is left
+    of the larger source. Page size therefore stays full to the very last
+    page, total pages = ceil(total / limit), and every job is reachable —
+    even when one park has far fewer jobs than the other."""
+    a, b = SOURCES
+    shorter_len = min(counts[a], counts[b])
+    longer = a if counts[a] >= counts[b] else b
+    total = counts[a] + counts[b]
+
+    plan = []
+    for pos in range(offset, min(offset + limit, total)):
+        if pos < 2 * shorter_len:
+            plan.append((SOURCES[pos % 2], pos // 2))
+        else:
+            plan.append((longer, shorter_len + (pos - 2 * shorter_len)))
+    return plan
+
+
+def _list_all_parks(db, search, exp_min, exp_max, page, limit):
+    counts = {
+        src: _count_matching(db, src, search, exp_min, exp_max) for src in SOURCES
+    }
+    total = sum(counts.values())
+    plan = _interleaved_plan(counts, (page - 1) * limit, limit)
+
+    # Each source's needed rows are consecutive, so one range query each.
+    wanted = {}
+    for src, idx in plan:
+        low, high = wanted.get(src, (idx, idx))
+        wanted[src] = (min(low, idx), max(high, idx))
+
+    rows = {}
+    for src, (low, high) in wanted.items():
+        rows[src] = (low, _fetch_slice(db, src, search, exp_min, exp_max, low, high))
+
+    jobs = []
+    for src, idx in plan:
+        low, data = rows[src]
+        if 0 <= idx - low < len(data):  # guard: rows can change between queries
+            jobs.append(data[idx - low])
+    return jobs, total
+
+
+def _list_single_source(db, source, search, exp_min, exp_max, page, limit):
+    total = _count_matching(db, source, search, exp_min, exp_max)
+    offset = (page - 1) * limit
+    if offset >= total:  # page past the end: empty page, not an error
+        return [], total
+    jobs = _fetch_slice(db, source, search, exp_min, exp_max, offset, offset + limit - 1)
+    return jobs, total
 
 
 @jobs_bp.route("/jobs", methods=["GET"])
@@ -104,25 +171,11 @@ def list_jobs():
 
     try:
         if source:
-            offset = (page - 1) * limit
-            jobs, total = _fetch_jobs_page(db, source, search, exp_min, exp_max, offset, limit)
+            jobs, total = _list_single_source(
+                db, source, search, exp_min, exp_max, page, limit
+            )
         else:
-            # "All Parks": split this page evenly across sources instead
-            # of one combined query, so every page is an actual mix
-            # rather than being dominated by one source's ID range.
-            per_source_limit = -(-limit // len(SOURCES))  # ceil division
-            per_source_offset = (page - 1) * per_source_limit
-
-            jobs = []
-            total = 0
-            for src in SOURCES:
-                src_jobs, src_total = _fetch_jobs_page(
-                    db, src, search, exp_min, exp_max, per_source_offset, per_source_limit
-                )
-                jobs.extend(src_jobs)
-                total += src_total
-
-            jobs = jobs[:limit]
+            jobs, total = _list_all_parks(db, search, exp_min, exp_max, page, limit)
     except Exception as exc:  # noqa: BLE001
         log.error("list_jobs query failed: %s", exc)
         return jsonify({"error": "failed to fetch jobs"}), 500

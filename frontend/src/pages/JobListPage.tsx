@@ -84,13 +84,21 @@ export default function JobListPage() {
     filterRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const isFirstRender = useRef(true);
+  // Reset to page 1 only when a filter actually CHANGES. Comparing against
+  // the previous values (instead of an "is first render" flag) keeps a
+  // direct link like /?page=37 working — React StrictMode runs effects
+  // twice in dev, and the old flag version reset the page on that rerun.
+  const prevFilters = useRef({ search, source, expRange });
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
+    const prev = prevFilters.current;
+    if (
+      prev.search !== search ||
+      prev.source !== source ||
+      prev.expRange !== expRange
+    ) {
+      prevFilters.current = { search, source, expRange };
+      setPage(1);
     }
-    setPage(1);
   }, [search, source, expRange]);
 
   useEffect(() => {
@@ -206,24 +214,34 @@ export default function JobListPage() {
         </div>
 
         {!loading && totalPages > 1 && (
-          <div className="mt-10 flex items-center justify-center gap-3 font-mono text-sm">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1}
-              className="px-3 py-1.5 rounded-lg border border-hairline disabled:opacity-30 hover:bg-surface"
-            >
-              ← prev
-            </button>
+          <div className="mt-10 flex items-center justify-between sm:justify-center sm:gap-6 font-mono text-sm">
+            {/* Prev: hidden on the first page, but keeps its space so the layout doesn't jump */}
+            {page > 1 ? (
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="inline-flex items-center gap-2 min-w-[96px] justify-center px-4 py-2 rounded-lg border border-hairline bg-surface text-inktext hover:bg-ink hover:text-stock transition-colors"
+              >
+                <span aria-hidden>←</span> Prev
+              </button>
+            ) : (
+              <span className="min-w-[96px]" aria-hidden />
+            )}
+
             <span className="text-inktext/60">
               {page} / {totalPages}
             </span>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages}
-              className="px-3 py-1.5 rounded-lg border border-hairline disabled:opacity-30 hover:bg-surface"
-            >
-              next →
-            </button>
+
+            {/* Next: hidden on the last page too, same spacing trick */}
+            {page < totalPages ? (
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                className="inline-flex items-center gap-2 min-w-[96px] justify-center px-4 py-2 rounded-lg bg-ink text-stock hover:bg-ink/85 transition-colors"
+              >
+                Next <span aria-hidden>→</span>
+              </button>
+            ) : (
+              <span className="min-w-[96px]" aria-hidden />
+            )}
           </div>
         )}
       </main>
