@@ -2,9 +2,9 @@ name: scrape
 
 on:
   schedule:
-    - cron: "30 0,12 * * *"   # 00:30 and 12:30 UTC = 06:00 AM and 06:00 PM IST
+    - cron: "17 0,12 * * *"   # 00:17 and 12:17 UTC = 05:47 AM and 05:47 PM IST
   push:
-    branches: [main]
+    branches: [main, dev]
     paths:
       - "scraper/**"
       - "requirements.txt"
